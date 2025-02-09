@@ -1,3 +1,7 @@
+= 1.6.4 =
+- Update tested up to
+- Disable WebP by default
+
 = 1.6.3 =
 - Fix display of statistics
 

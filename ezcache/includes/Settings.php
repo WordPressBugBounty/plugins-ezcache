@@ -36,7 +36,7 @@ class Settings {
 		    'combine_css'             => false,
 		    'combine_css_footer'      => false,
 		    'critical_css'            => '',
-		    'enable_webp_support'     => true,
+		    'enable_webp_support'     => false,
 
 		    'no_cache_query_params'         => false,
 		    'cache_clear_on_post_edit'      => true,

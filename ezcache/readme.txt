@@ -3,7 +3,7 @@ Contributors: upress, ilanf
 Tags: upress,hosting,cache,speed,boost
 Requires PHP: 5.6
 Requires at least: 4.6
-Tested up to: 6.2
+Tested up to: 6.7
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -34,6 +34,10 @@ We created ezCash to take the new decade's speed experience and bring it to your
 1. Plugin main screen
 
 == Changelog ==
+= 1.6.4 =
+- Update tested up to
+- Disable WebP by default
+
 = 1.6.3 =
 - Fix display of statistics
 
