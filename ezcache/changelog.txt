@@ -1,3 +1,6 @@
+= 1.6.5 =
+- Added purge of Varnish cache
+
 = 1.6.4 =
 - Update tested up to
 - Disable WebP by default

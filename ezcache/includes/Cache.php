@@ -1029,6 +1029,8 @@ class Cache {
 			$this->delete_missing_webp_images();
 		}
 
+		$this->purge_varnish_cache();
+
 		$this->preload_homepage();
 	}
 
@@ -1041,12 +1043,50 @@ class Cache {
 		$real_cache_dir = $this->get_real_cache_dir( $post_id );
 
 		$this->rmdir_recursive( $real_cache_dir );
+
+		$this->purge_varnish_cache();
 	}
 
 	public function clear_cache_url( $url ) {
 		$real_cache_dir = $this->get_real_cache_dir( 0, $url );
 
 		$this->rmdir_recursive( $real_cache_dir );
+
+		$this->purge_varnish_cache();
+	}
+
+	public function purge_varnish_cache() {
+		$desktop_ua = apply_filters(
+			'ezcache_desktop_useragent',
+			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36 (ezCache Preload)'
+		);
+
+		$parseUrl = parse_url( home_url() );
+
+		$schema = 'http://';
+		if ( isset( $parseUrl['scheme'] ) ) {
+			$schema = $parseUrl['scheme'] . '://';
+		}
+
+		$host = $parseUrl['host'];
+
+		$request_args = [
+			'method'    => 'PURGE',
+			'headers'   => [
+				'Host'       => $host,
+				'User-Agent' => $desktop_ua,
+			],
+			'sslverify' => false,
+		];
+		$response = wp_remote_request( $schema . $host . '/.*', $request_args );
+		if ( is_wp_error( $response ) || $response['response']['code'] != '200' ) {
+			if ( $schema === 'https://' ) {
+				$schema = 'http://';
+			} else {
+				$schema = 'https://';
+			}
+			wp_remote_request( $schema . $host . '/.*', $request_args );
+		}
 	}
 
 	/**

@@ -34,6 +34,9 @@ We created ezCash to take the new decade's speed experience and bring it to your
 1. Plugin main screen
 
 == Changelog ==
+= 1.6.5 =
+- Added purge of Varnish cache
+
 = 1.6.4 =
 - Update tested up to
 - Disable WebP by default
