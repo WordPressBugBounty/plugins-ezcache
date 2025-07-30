@@ -1,3 +1,9 @@
+= 1.6.6 =
+- Update tested up to
+- Added option to purge WebP images
+- Update frontend dependencies
+- Optimize WebP convertion process
+
 = 1.6.5 =
 - Added purge of Varnish cache
 

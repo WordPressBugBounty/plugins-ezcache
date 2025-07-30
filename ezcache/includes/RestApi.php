@@ -13,6 +13,8 @@ class RestApi {
 		$this->delete( '/settings', '\Upress\EzCache\Rest\SettingsController@destroy' );
 		$this->get(    '/cache',    '\Upress\EzCache\Rest\CacheController@show' );
 		$this->delete( '/cache',    '\Upress\EzCache\Rest\CacheController@destroy' );
+		$this->post( '/webp',    '\Upress\EzCache\Rest\WebpController@process' );
+		$this->delete( '/webp',    '\Upress\EzCache\Rest\WebpController@destroy' );
 		$this->get(    '/status',   '\Upress\EzCache\Rest\StatusController@show' );
 		$this->get(    '/license',  '\Upress\EzCache\Rest\LicenseController@show' );
 		$this->patch(  '/license',  '\Upress\EzCache\Rest\LicenseController@update' );

@@ -489,6 +489,7 @@ class Admin {
 			'basic_settings'         => __( 'Basic Settings', 'ezcache' ),
 			'confirm'                => __( 'OK', 'ezcache' ),
 			'cancel'                 => __( 'Cancel', 'ezcache' ),
+			'delete'                 => __( 'Delete', 'ezcache' ),
 
 			'no_cache_known_users'                      => __( 'Don\'t cache pages for known users', 'ezcache' ),
 			'no_cache_known_users_description'          => __( 'This disables cache for logged in users.', 'ezcache' ),
@@ -609,6 +610,14 @@ class Admin {
 			'excluded_minify_files'                          => __( 'Exclude JS/CSS files from optimization', 'ezcache' ),
 			'excluded_minify_files_description'              => __( 'List filenames or paths to files which should be excluded from minification or combining.', 'ezcache' ),
 			'excluded_minify_files_placeholder'              => __( "jquery.js\nrecaptcha/api.js\ngoogleadservices.com", 'ezcache' ),
+
+			'advanced_tools' => __( 'Advanced Tools', 'ezcache' ),
+			'delete_webp_images' => __( 'Clear WebP Images Cache', 'ezcache' ),
+			'confirm_delete_webp_images' => __( "Are you sure that you want to delete all of the cached WebP images?\nTheses images will have to be converted again which may take some time.", 'ezcache' ),
+			'error_delete_webp_images' => __( "Error clearing WebP image cache", 'ezcache' ),
+			'schedule_webp_images_process_started' => __( "Scheduled task queued", 'ezcache' ),
+			'error_schedule_webp_images_process' => __( "Error scheduling WebP process", 'ezcache' ),
+			'schedule_webp_images_process' => __( "Re-Schedule WebP Process Scheduled Task", 'ezcache' ),
 
 			'license_key'                   => __( 'License Key', 'ezcache' ),
 			'license_key_description'       => __( 'ezCache pro license will allow you to use the WebP image optimization without limits.', 'ezcache' ),

@@ -49,9 +49,11 @@ class ConvertWebpProcess {
 			];
 		}
 
-		if ( ! in_array( $cache_file, $queue[ $key ]['cache_files'] ) ) {
-			$queue[ $key ]['cache_files'][] = $cache_file;
+		if ( in_array( $cache_file, $queue[ $key ]['cache_files'] ) ) {
+			return true;
 		}
+
+		$queue[ $key ]['cache_files'][] = $cache_file;
 
 		update_site_option( $this->convert_queue, $queue );
 	}
@@ -80,15 +82,28 @@ class ConvertWebpProcess {
 		global $wpdb;
 
 		$queue = $this->shift_queue( 15 );
+		if ( 0 >= count( $queue ) ) {
+			return;
+		}
+
+		$image_ids = array_column( $queue, 'image_id' );
+		$images = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM `{$wpdb->prefix}ezcache_webp_images` WHERE `id` IN (" . rtrim( str_repeat(  '%d,', count( $image_ids ) ), ',' ) . ") LIMIT 15",
+				$image_ids
+			)
+		);
+		$precached_images = [];
+		foreach ( $images as $image ) {
+			$precached_images[ $image->id ] = $image;
+		}
 
 		foreach ( $queue as $data ) {
 			$image_id    = $data['image_id'];
 			$cache_files = $data['cache_files'];
 
-			Logger::log( "convert_image({$image_id})" );
-
 			try {
-				$this->convert_image( $image_id, $cache_files );
+				$this->convert_image( $image_id, $cache_files, $precached_images );
 			} catch ( \Exception $ex ) {
 				Logger::log( "ezCache ConvertWebpProcess::convert_image error: {$ex->getMessage()}\n{$ex->getTraceAsString()}" );
 			}
@@ -103,10 +118,10 @@ class ConvertWebpProcess {
 		$wpdb->query( "OPTIMIZE TABLE `{$wpdb->prefix}ezcache_webp_images`" );
 	}
 
-	protected function convert_image( $image_id, $cache_files ) {
+	protected function convert_image( $image_id, $cache_files, $precached_images = [] ) {
 		global $wpdb;
 
-		$image = $wpdb->get_row(
+		$image = isset( $precached_images[$image_id] ) ? $precached_images[$image_id] : $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT * FROM `{$wpdb->prefix}ezcache_webp_images` WHERE `id` = %s LIMIT 1",
 				[ $image_id ]
@@ -119,7 +134,7 @@ class ConvertWebpProcess {
 			return;
 		}
 
-		if ( $image && 'completed' == $image->status ) {
+		if ( 'completed' == $image->status ) {
 			$this->replace_links( $cache_files, $image->url, $image->webp_url );
 
 			return;
@@ -128,10 +143,15 @@ class ConvertWebpProcess {
 		// only download the file if we don't have it locally
 		if ( ! file_exists( $image->webp_path ) || filesize( $image->webp_path ) <= 2 || stripos( file_get_contents( $image->webp_path ), '"success":false' ) ) {
 			$license   = new LicenseApi();
+			if ( ! $license->is_license_valid() ) {
+				Logger::log( "ezCache WebP Background Processor: image with ID {$image_id} skipped, license not valid." );
+				return;
+			}
+
 			$converter = new WebpApi( $license->get_license_key() );
 			$response  = $converter->convert( $image->path );
 
-			if ( is_wp_error( $response ) || stripos( $response['info']['content_type'], 'json' ) || stripos( $response['data'], '"success":false' ) ) {
+			if ( is_wp_error( $response ) || stripos( $response['info']['content-type'], 'json' ) || stripos( $response['data'], '"success":false' ) ) {
 				$wpdb->query(
 					$wpdb->prepare(
 						"UPDATE `{$wpdb->prefix}ezcache_webp_images` SET `status` = %s WHERE `id` = %d",

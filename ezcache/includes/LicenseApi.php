@@ -21,18 +21,6 @@ class LicenseApi {
 		$this->encrypter = new Encrypter();
 	}
 
-	/*
-Array
-(
-    [status] => success
-    [status_code] => s205
-    [message] => הרשיון פעיל ותקף בעבור דומיין זה
-    [licence_status] => active
-    [licence_start] => 2019-07-21
-    [licence_expire] => 2020-07-21
-    [key] => 6C597A11-B502131F-8902E4CC
-)
-	 */
 	public function get_expiration_date() {
 		$data = $this->get_license_data();
 		return isset( $data['licence_expire'] ) ? strtotime( $data['licence_expire'] ) : 0;
@@ -40,7 +28,7 @@ Array
 
 	public function is_license_valid() {
 		$data = $this->get_license_data();
-		return isset( $data['license_status'] ) && $data['license_status'] == 'active';
+		return isset( $data['licence_status'] ) && $data['licence_status'] == 'active';
 	}
 
 	public function get_masked_license_key() {
@@ -72,7 +60,7 @@ Array
 			self::$_license_data = [];
 		}
 
-		if ( ! $cached || empty( self::$_license_data ) ) {
+		if ( ! $cached || empty( self::$_license_data ) || WP_DEBUG ) {
 			$key = $this->get_license_key();
 			// get the current status and cache it
 			self::$_license_data = $this->status_check( $key );

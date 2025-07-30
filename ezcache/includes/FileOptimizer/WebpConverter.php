@@ -86,11 +86,13 @@ class WebpConverter extends BaseFileOptimizer {
 			// we don't process external files or files that don't exist
 
 			if ( $this->is_external_file( $image_url ) ) {
+				Logger::log("{$image_url} is external");
 				continue;
 			}
 
 			$image_path = $this->get_file_path( $image_url );
 			if ( ! $image_path || ! file_exists( $image_path ) ) {
+				Logger::log("{$image_url} doesn't exist");
 				continue;
 			}
 
@@ -104,6 +106,7 @@ class WebpConverter extends BaseFileOptimizer {
 
 			// and skip non-images or images already in webp format
 			if ( 'webp' == $ext || ! preg_match( '/image\/.+/i', $mime ) || preg_match( '/image\/(svg.*|ico|gif|webp)/i', $mime ) ) {
+				Logger::log("{$image_url} is already webp");
 				continue;
 			}
 
@@ -117,19 +120,21 @@ class WebpConverter extends BaseFileOptimizer {
 
 			if ( $image && 'completed' == $image->status ) {
 				$html = preg_replace( '/\b' . preg_quote( $image_url, '/' ) . '\b/u', $image->webp_url, $html );
+				Logger::log("{$image_url} already processed");
 				continue;
 			}
 
 			if ( $image && 'pending' == $image->status ) {
 				// image is being processed in background
+				Logger::log("{$image_url} still waiting to be processed");
 
-				if ( time() - strtotime( $image->updated_at ) >= HOUR_IN_SECONDS ) {
-					// if it's the in the same hour wait for it to finish
-					continue;
-				}
+				// need to make sure that the scheuled task for process is running
+				$need_to_process = true;
 
-				// if it's longer than that the image is probably stuck
-				$image->status = 'failed';
+				// 'add_to_queue' will not add it again if already queued
+				$this->webp_processor->add_to_queue( $image->id, $this->cache_file );
+
+				continue;
 			}
 
 			if ( $image && 'failed' == $image->status ) {
