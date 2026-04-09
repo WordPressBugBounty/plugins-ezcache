@@ -1,4 +1,4 @@
-= 1.7.1 =
+= 1.7.0 =
 - New: Cache Preload module (sitemap parser + queued background processor + homepage crawler), inspired by WP Rocket
 - New: Lazy load for images and iframes
 - New: Defer JavaScript option with exclusion list

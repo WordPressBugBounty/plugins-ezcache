@@ -34,7 +34,7 @@ We created ezCash to take the new decade's speed experience and bring it to your
 1. Plugin main screen
 
 == Changelog ==
-= 1.7.1 =
+= 1.7.0 =
 - New: Cache Preload module that warms the cache via XML sitemap parsing, homepage crawling and a queued background processor (inspired by WP Rocket).
 - New: Native lazy-loading for images and iframes.
 - New: Defer JavaScript option with per-handle exclusions.
