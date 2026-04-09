@@ -57,6 +57,41 @@ class Settings {
 		    'rejected_user_agent'   => '',
 		    'rejected_cookies'      => '',
 		    'excluded_minify_files' => '',
+
+		    // Preload (1.7.0+)
+		    'enable_preload'               => false,
+		    'preload_on_cache_clear'       => true,
+		    'preload_sitemap_url'          => '',
+		    'preload_batch_size'           => 5,
+		    'preload_crawl_homepage_links' => true,
+
+		    // Front-end optimizations (1.7.0+)
+		    'lazy_load_images'     => false,
+		    'lazy_load_iframes'    => false,
+		    'remove_query_strings' => false,
+		    'defer_js'             => false,
+		    'defer_js_exclusions'  => '',
+		    'dns_prefetch'         => '',
+		    'preconnect'           => '',
+
+		    // Heartbeat (1.7.0+)
+		    'heartbeat_control' => false,
+		    'heartbeat_mode'    => 'reduce',
+
+		    // CDN (1.7.0+)
+		    'cdn_enabled' => false,
+		    'cdn_url'     => '',
+
+		    // Database cleanup (1.7.0+)
+		    'db_cleanup_revisions'          => false,
+		    'db_cleanup_auto_drafts'        => false,
+		    'db_cleanup_trashed_posts'      => false,
+		    'db_cleanup_spam_comments'      => false,
+		    'db_cleanup_trashed_comments'   => false,
+		    'db_cleanup_expired_transients' => false,
+		    'db_cleanup_orphan_postmeta'    => false,
+		    'db_optimize_tables'            => false,
+		    'db_cleanup_schedule'           => 'never',
 	    ];
     }
 
@@ -100,6 +135,15 @@ class Settings {
 
         file_put_contents( self::settings_file_path(), json_encode( $settings ) );
 		self::$settings = $settings;
+
+		// Refresh schedules for the new modules.
+		if ( class_exists( '\\Upress\\EzCache\\Preload' ) ) {
+			Preload::instance()->maybe_schedule_cron();
+		}
+		if ( class_exists( '\\Upress\\EzCache\\DatabaseOptimizer' ) ) {
+			( new DatabaseOptimizer() )->schedule();
+		}
+
         return $settings;
     }
 

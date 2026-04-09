@@ -1,3 +1,15 @@
+= 1.7.1 =
+- New: Cache Preload module (sitemap parser + queued background processor + homepage crawler), inspired by WP Rocket
+- New: Lazy load for images and iframes
+- New: Defer JavaScript option with exclusion list
+- New: DNS prefetch and preconnect resource hints
+- New: Heartbeat API control (reduce / disable)
+- New: CDN URL rewriting for static assets
+- New: One-click database cleanup with optional scheduled run (revisions, auto-drafts, trashed posts, spam/trashed comments, expired transients, orphan postmeta, OPTIMIZE TABLE)
+- New: Remove query strings from local CSS/JS
+- New: REST endpoints /ezcache/v1/preload and /ezcache/v1/database/clean
+- New: Action hooks ezcache_after_clear_cache, ezcache_after_clear_cache_single, ezcache_after_clear_cache_url
+
 = 1.6.6 =
 - Update tested up to
 - Added option to purge WebP images

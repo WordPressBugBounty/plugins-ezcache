@@ -1032,6 +1032,12 @@ class Cache {
 		$this->purge_varnish_cache();
 
 		$this->preload_homepage();
+
+		/**
+		 * Fires after the entire cache has been cleared.
+		 * Used by the Preload module to start a fresh preload run.
+		 */
+		do_action( 'ezcache_after_clear_cache' );
 	}
 
 	/**
@@ -1045,6 +1051,13 @@ class Cache {
 		$this->rmdir_recursive( $real_cache_dir );
 
 		$this->purge_varnish_cache();
+
+		/**
+		 * Fires after a single post's cache has been cleared.
+		 *
+		 * @param int $post_id
+		 */
+		do_action( 'ezcache_after_clear_cache_single', $post_id );
 	}
 
 	public function clear_cache_url( $url ) {
@@ -1053,6 +1066,13 @@ class Cache {
 		$this->rmdir_recursive( $real_cache_dir );
 
 		$this->purge_varnish_cache();
+
+		/**
+		 * Fires after a URL's cache has been cleared.
+		 *
+		 * @param string $url
+		 */
+		do_action( 'ezcache_after_clear_cache_url', $url );
 	}
 
 	public function purge_varnish_cache() {

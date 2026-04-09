@@ -34,6 +34,18 @@ We created ezCash to take the new decade's speed experience and bring it to your
 1. Plugin main screen
 
 == Changelog ==
+= 1.7.1 =
+- New: Cache Preload module that warms the cache via XML sitemap parsing, homepage crawling and a queued background processor (inspired by WP Rocket).
+- New: Native lazy-loading for images and iframes.
+- New: Defer JavaScript option with per-handle exclusions.
+- New: DNS prefetch and preconnect resource hints.
+- New: Heartbeat API control (reduce or disable).
+- New: CDN URL rewriting for static assets.
+- New: One-click database cleanup (revisions, auto-drafts, trashed posts, spam/trashed comments, expired transients, orphan postmeta, optimize tables) with optional scheduled cleanup.
+- New: Remove query strings from local CSS/JS for better proxy/CDN cacheability.
+- New: REST endpoints `/ezcache/v1/preload` and `/ezcache/v1/database/clean`.
+- New: Action hooks `ezcache_after_clear_cache`, `ezcache_after_clear_cache_single`, `ezcache_after_clear_cache_url`.
+
 = 1.6.6 =
 - Update tested up to
 - Added option to purge WebP images

@@ -3,7 +3,7 @@
 	Plugin Name: ezCache
 	Description: ezCache is an easy and innovative cache plugin that will help you significantly improve your site speed.
 	Plugin URI: https://ezcache.app
-	Version: 1.6.6
+	Version: 1.7.1
 	Author: uPress
 	Author URI: https://www.upress.io
 	Text Domain: ezcache
@@ -35,7 +35,7 @@ namespace {
 	define( 'EZCACHE_FILE', __FILE__ );
 	define( 'EZCACHE_URL', plugin_dir_url( __FILE__ ) );
 	define( 'EZCACHE_BASEBANE', basename( __FILE__ ) );
-	define( 'EZCACHE_VERSION', '1.6.6' );
+	define( 'EZCACHE_VERSION', '1.7.1' );
 	define( 'EZCACHE_SETTINGS_KEY', 'ezcache' );
 
 	register_activation_hook( EZCACHE_FILE, 'upress_ezcache_activation_hook' );
@@ -107,8 +107,14 @@ namespace Upress\EzCache {
 
 			new RestApi( $this );
 			new Admin( $this );
+			new AdvancedSettingsPage();
+			new Optimizations();
+			Preload::instance();
 
 			add_action( 'ezcache_clear_expired_cache', [ $this->ezcache, 'clear_expired_cache' ] );
+			add_action( 'ezcache_db_cleanup', function () {
+				( new DatabaseOptimizer() )->clean();
+			} );
 		}
 
 		function load_translation() {
