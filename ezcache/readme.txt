@@ -1,77 +1,70 @@
 === ezCache ===
-Contributors: upress, ilanf
-Tags: upress,hosting,cache,speed,boost
-Requires PHP: 5.6
-Requires at least: 4.6
+Contributors: upress, freemius
+Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: trunk
+Requires PHP: 7.4
+Stable tag: 2.2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tags: cache, performance, speed, redis, optimization
 
-EzCache is an easy and innovative cache plugin that will help you significantly improve your site speed.
+Lightning-fast WordPress optimization — page caching, Redis Object Cache, Critical CSS, WebP images, CSS/JS optimization, and 15+ performance tools.
 
 == Description ==
 
-EzCache is an easy and innovative cache plugin that will help you significantly improve your site speed.
-The plugin comes in a simple and easy installation, without the need for advanced technical knowledge, offers you the opportunity to make your site much faster in a few simple steps, cache pages on your site, automatically optimize images using WebP format to reduce the size of your site's images by tens of percent and save You need the extra image minimization plugin.
+ezCache is the most complete WordPress performance optimization plugin. From page caching to Redis Object Cache, Critical CSS to Speculative Loading — everything you need to make your site blazing fast.
 
-In addition, the plugin allows you to minimize advanced HTML files, JAVA SCRIPT files
-And CSS files
-In the advanced settings of the extension, you can easily save advanced settings, such as:
-Configure caching by page type, set cached links,
-Exclude certain user types.
-And of course, you can always view statistics that will always keep you updated on your site's caching performance.
+**Free Features:**
+* ⚡ Page Caching — serve cached HTML instantly
+* 🖼️ Lazy Loading — defer offscreen images and iframes
+* 📝 HTML Minification — reduce page size
+* 🔮 Speculative Loading — Chrome prerenders pages before click
+* ⚡ 103 Early Hints — browser fetches CSS/JS before HTML arrives
+* 🩺 Site Diagnostic Tool — one-click performance analysis
+* 💾 Settings Backup/Restore — export/import configuration
+* 🔧 Development Mode — temporarily disable cache
 
-We created ezCash to take the new decade's speed experience and bring it to your WordPress sites easily and quickly
+**Pro Features ($29/year):**
+* 🔴 Redis Object Cache — store DB queries in RAM, 90% fewer queries
+* 🔴 Redis Full-Page Cache — serve pages from Redis in <1ms
+* 🎨 Critical CSS — inline above-the-fold CSS, defer the rest
+* 🎨 CSS/JS Minification & Combination
+* 🖼️ WebP Image Conversion — save 25-34% bandwidth
+* 🚀 Cache Preloading — warm cache automatically
+* 🌐 CDN Integration — URL rewriting for static assets
+* 🗄️ Database Cleanup — revisions, drafts, transients
+* 💓 Heartbeat Control — reduce server load
+* 🔗 DNS Prefetch & Preconnect
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/ezcache` directory, or install the plugin through the WordPress plugins screen directly.
-1. Activate the plugin through the 'Plugins' screen in WordPress
-
-== Screenshots ==
-
-1. Plugin main screen
+1. Upload the plugin to `/wp-content/plugins/ezcache/` or install via WordPress admin
+2. Activate the plugin
+3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
-= 1.7.0 =
-- New: Cache Preload module that warms the cache via XML sitemap parsing, homepage crawling and a queued background processor (inspired by WP Rocket).
-- New: Native lazy-loading for images and iframes.
-- New: Defer JavaScript option with per-handle exclusions.
-- New: DNS prefetch and preconnect resource hints.
-- New: Heartbeat API control (reduce or disable).
-- New: CDN URL rewriting for static assets.
-- New: One-click database cleanup (revisions, auto-drafts, trashed posts, spam/trashed comments, expired transients, orphan postmeta, optimize tables) with optional scheduled cleanup.
-- New: Remove query strings from local CSS/JS for better proxy/CDN cacheability.
-- New: REST endpoints `/ezcache/v1/preload` and `/ezcache/v1/database/clean`.
-- New: Action hooks `ezcache_after_clear_cache`, `ezcache_after_clear_cache_single`, `ezcache_after_clear_cache_url`.
 
-= 1.6.6 =
-- Update tested up to
-- Added option to purge WebP images
-- Update frontend dependencies
-- Optimize WebP convertion process
+= 2.2.0 =
+* New: Redis Object Cache — store WordPress object cache in Redis
+* New: Redis Full-Page Cache — serve pages from Redis memory
+* New: Critical CSS — inline above-the-fold CSS, defer the rest
+* New: Speculative Loading — Chrome Speculation Rules API prerender
+* New: 103 Early Hints — HTTP 103 headers for faster asset loading
+* New: Site Diagnostic Tool — one-click performance analysis with recommendations
+* New: Settings Backup/Restore — export/import configurations
+* New: Development Mode — temporary cache bypass
+* New: License key activation in plugin UI
+* Improved: WebP API with domain-based auth and retry logic
+* Improved: PRO badges on all premium features
+* Improved: Cache signature shows Redis/Disk type
 
-= 1.6.5 =
-- Added purge of Varnish cache
+= 2.0.0 =
+* Major: Complete UI rebuild with Vue 3 + Vite
+* New: Freemius integration for licensing
+* New: Built-in 7-day Pro trial
+* Improved: Performance page redesign
 
-= 1.6.4 =
-- Update tested up to
-- Disable WebP by default
+= 1.7.2 =
+* Fix: Freemius SDK compatibility
+* Improved: WebP conversion reliability
 
-= 1.6.3 =
-- Fix display of statistics
-
-= 1.6.2 =
-- Fix external JS files not being ignored while combining
-- Added an exclusion for Elementor per-page JS/CSS files so that the manual exclusion is no longer required
-
-= 1.6.1 =
-- Fix problem setting up scheduled task for old cache cleanup
-
-= 1.6.0 =
-- Log only when debug is enabled
-- Fixed problem with caching of campaign URLs
-- Clearing homepage cache on post save will clear posts page as well
-- Fixed problem with duplicate IDs when saving WebP images
-- Added option to skip combining inline scripts

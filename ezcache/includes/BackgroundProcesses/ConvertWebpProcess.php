@@ -3,6 +3,7 @@
 namespace Upress\EzCache\BackgroundProcesses;
 
 use Upress\EzCache\LicenseApi;
+use Upress\EzCache\PremiumFeatures;
 use Upress\EzCache\Settings;
 use Upress\EzCache\Utilities\Logger;
 use Upress\EzCache\WebpApi;
@@ -142,13 +143,13 @@ class ConvertWebpProcess {
 
 		// only download the file if we don't have it locally
 		if ( ! file_exists( $image->webp_path ) || filesize( $image->webp_path ) <= 2 || stripos( file_get_contents( $image->webp_path ), '"success":false' ) ) {
-			$license   = new LicenseApi();
-			if ( ! $license->is_license_valid() ) {
-				Logger::log( "ezCache WebP Background Processor: image with ID {$image_id} skipped, license not valid." );
+			// Premium check via Freemius
+			if ( ! PremiumFeatures::is_premium() ) {
+				Logger::log( "ezCache WebP: image {$image_id} skipped, premium required." );
 				return;
 			}
 
-			$converter = new WebpApi( $license->get_license_key() );
+			$license_key = ""; if (function_exists("ezc_fs") && ezc_fs()->_get_license()) { $license_key = ezc_fs()->_get_license()->secret_key; } $converter = new WebpApi( $license_key ?: "freemius_premium" );
 			$response  = $converter->convert( $image->path );
 
 			if ( is_wp_error( $response ) || stripos( $response['info']['content-type'], 'json' ) || stripos( $response['data'], '"success":false' ) ) {

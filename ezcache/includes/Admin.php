@@ -28,11 +28,14 @@ class Admin {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+		add_action( 'admin_footer', [ $this, 'inject_premium_ui_gates' ] );
+		// inject_branding_css removed — branding is now built into Vue 2.0
 		add_action( 'plugin_action_links_' . plugin_basename( $this->plugin->plugin_file ), [
 			$this,
 			'plugin_action_links',
 		] );
 		add_action( 'admin_notices', [ $this, 'maybe_show_advanced_cache_notice' ] );
+		add_action( 'admin_notices', [ $this, 'show_trial_banner' ] );
 
 		add_action( 'admin_bar_menu', [ $this, 'add_admin_bar_button' ], 999 );
 		add_action( 'admin_post_wpb_clear_cache', [ $this, 'admin_clear_cache' ] );
@@ -134,15 +137,15 @@ class Admin {
 		$value = get_post_meta( $post->ID, '_ezcache_do_not_cache_post', true );
 		wp_nonce_field( 'ezcache_metabox', '_eznonce' );
 		?>
-        <div class="components-panel__row">
-            <div class="components-base-control">
+        <div style="padding:8px 0">
+            <div style="display:flex;align-items:center">
                 <input type="checkbox"
                        id="ezcache_no_cache"
                        name="ezcache_no_cache"
-                       class="components-checkbox-control__input"
+                       class="checkbox" style="width:16px;height:16px;margin-right:8px;vertical-align:middle"
 					<?php checked( $value ); ?>
                 >
-                <label class="components-checkbox-control__label" for="ezcache_no_cache">
+                <label style="vertical-align:middle;cursor:pointer" for="ezcache_no_cache">
 					<?php echo 'page' == $post_type_object->capability_type ? esc_html__( 'Do not cache this page', 'ezcache' ) : esc_html__( 'Do not cache this post', 'ezcache' ); ?>
                 </label>
             </div>
@@ -295,7 +298,7 @@ class Admin {
         <div id="ezcache-options" class="wrap ezcache-options">
             <!--suppress HtmlUnknownTag -->
             <ezc-options>
-                <div class="ezcache-options--preload" aria-hidden="true">
+                <div class="ezcache-options--preload" aria-hidden="true" style="display:none">
                     <header class="ezcache-header">
                         <h1>
                             <svg viewBox="0 0 360 68" version="1.1" xmlns="http://www.w3.org/2000/svg"
@@ -412,18 +415,31 @@ class Admin {
 
 		wp_enqueue_script( 'ezcache-options', $this->plugin->plugin_url . '/assets/dist/js/options.js', [], $ver, true );
 		wp_enqueue_style( 'ezcache-options', $this->plugin->plugin_url . '/assets/dist/css/options.css', [], $ver );
+		// branding.css removed — branding is embedded in Vue 2.0 options.css
+
+		$upgrade_url = function_exists( 'ezc_fs' ) ? ezc_fs()->get_upgrade_url() : 'https://checkout.freemius.com/mode/dialog/plugin/27915/plan_id/60240/';
 
 		wp_localize_script( 'ezcache-options', 'ezcache', [
-			'assets_url' => esc_url_raw( EZCACHE_URL . '/assets' ),
-			'ajax_url'   => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
-			'rest_url'   => esc_url_raw( rest_url() ),
-			'ajax_nonce' => wp_create_nonce( 'ezcache-options' ),
-			'rest_nonce' => wp_create_nonce( 'wp_rest' ),
-			'is_rtl'     => is_rtl(),
-			'site_url'   => esc_url_raw( untrailingslashit( site_url() ) ),
-			'performance_url' => admin_url( 'admin.php?page=ezcache-performance' ),
-			'trans'      => $this->getJsTraslations(),
-			'is_https_2' => $this->check_https_2_support(),
+			'assets_url'             => esc_url_raw( EZCACHE_URL . '/assets' ),
+			'ajax_url'               => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
+			'rest_url'               => esc_url_raw( rest_url() ),
+			'ajax_nonce'             => wp_create_nonce( 'ezcache-options' ),
+			'rest_nonce'             => wp_create_nonce( 'wp_rest' ),
+			'is_premium'             => \Upress\EzCache\PremiumFeatures::is_premium(),
+			'is_trial'               => \Upress\EzCache\PremiumFeatures::is_builtin_trial(),
+			'trial_days_remaining'   => \Upress\EzCache\PremiumFeatures::trial_days_remaining(),
+			'premium_features'       => \Upress\EzCache\PremiumFeatures::get_premium_features(),
+			'upgrade_url'            => esc_url_raw( $upgrade_url ),
+			'is_freemius_registered' => function_exists('ezc_fs') && ezc_fs()->is_registered(),
+			'is_freemius_trial'      => function_exists('ezc_fs') && ezc_fs()->is_trial(),
+			'is_freemius_paying'     => function_exists('ezc_fs') && ezc_fs()->is_paying(),
+			'trial_start_url'        => function_exists('ezc_fs') ? admin_url('admin.php?page=ezcache-pricing&trial=true') : '',
+			'opt_in_url'             => function_exists('ezc_fs') && !ezc_fs()->is_registered() ? ezc_fs()->get_activation_url() : '',
+			'is_rtl'                 => is_rtl(),
+			'site_url'               => esc_url_raw( untrailingslashit( site_url() ) ),
+			'performance_url'        => admin_url( 'admin.php?page=ezcache-performance' ),
+			'trans'                  => $this->getJsTraslations(),
+			'is_https_2'             => $this->check_https_2_support(),
 			'is_elementor_installed' => is_plugin_active( 'elementor/elementor.php' ),
 		] );
 	}
@@ -675,9 +691,9 @@ class Admin {
 			'schedule_webp_images_process' => __( "Re-Schedule WebP Process Scheduled Task", 'ezcache' ),
 
 			'license_key'                   => __( 'License Key', 'ezcache' ),
-			'license_key_description'       => __( 'ezCache pro license will allow you to use the WebP image optimization without limits.', 'ezcache' ),
-			'deactivate_license'            => __( 'Deactivate License', 'ezcache' ),
-			'activate_license'              => __( 'Activate License', 'ezcache' ),
+			'license_key_description'       => __( 'Manage your license through Freemius. Upgrade to Pro for unlimited WebP image optimization.', 'ezcache' ),
+			'deactivate_license'            => __( 'Account Settings', 'ezcache' ),
+			'activate_license'              => __( 'Manage License', 'ezcache' ),
 			'license_valid'                 => __( 'License is valid', 'ezcache' ),
 			'license_invalid'               => __( 'License is invalid', 'ezcache' ),
 			'license_expires_at'            => __( 'License expires at %s', 'ezcache' ),
@@ -699,15 +715,75 @@ class Admin {
 			'upress_domain'              => __( 'www.upress.io', 'ezcache' ),
 			'upress_ad_link'             => __( 'https://www.upress.io/?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
 			'speed_test_url'             => __( 'https://speedom.net/?url=%s&location=US-NY&utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
-			'ezcache_docs_link'          => __( 'https://ezcache.app/documentation?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
-			'ezcache_knowledgebase_link' => __( 'https://ezcache.app/knowledgebase?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
-			'ezcache_pricing_link'       => __( 'https://ezcache.app/pricing?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
+			'ezcache_docs_link'          => __( 'https://ezcache-wp.com/documentation?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
+			'ezcache_knowledgebase_link' => __( 'https://ezcache-wp.com/knowledgebase?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
+			'ezcache_pricing_link'       => __( 'https://ezcache-wp.com/pricing?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache', 'ezcache' ),
 		];
 	}
 
 	/**
 	 * Show cache status admin notices when needed
 	 */
+
+	/**
+	 * Show trial banner in admin
+	 */
+	function show_trial_banner() {
+		// Only show on ezCache pages
+		$screen = get_current_screen();
+		if ( ! $screen || strpos( $screen->id, 'ezcache' ) === false ) {
+			return;
+		}
+
+		$is_builtin_trial = \Upress\EzCache\PremiumFeatures::is_builtin_trial();
+		$days_remaining = \Upress\EzCache\PremiumFeatures::trial_days_remaining();
+		$is_freemius_registered = function_exists('ezc_fs') && ezc_fs()->is_registered();
+		$is_freemius_trial = function_exists('ezc_fs') && ezc_fs()->is_trial();
+		$is_freemius_paying = function_exists('ezc_fs') && ezc_fs()->is_paying();
+
+		// Paying user - no banner needed
+		if ( $is_freemius_paying ) {
+			return;
+		}
+
+		// Freemius trial active - show Freemius managed trial info
+		if ( $is_freemius_trial ) {
+			return;
+		}
+
+		// Built-in trial active
+		if ( $is_builtin_trial && $days_remaining > 0 ) {
+			$upgrade_url = function_exists('ezc_fs') ? ezc_fs()->get_upgrade_url() : '#';
+			if ( ! $is_freemius_registered ) {
+				// Not opted in yet - show banner to activate trial via Freemius
+				$opt_in_url = ezc_fs()->get_activation_url();
+				echo '<div class="notice notice-info" style="border-left-color:#f0b849;padding:12px 15px;">
+				<p style="font-size:14px;margin:0;">🎉 <strong>Pro Trial Active!</strong> All premium features are unlocked for <strong>' . $days_remaining . ' days</strong>.
+				<a href="' . esc_url( $opt_in_url ) . '" style="margin-left:10px;background:#f0b849;color:#000;padding:5px 15px;border-radius:4px;text-decoration:none;font-weight:bold;">Activate to keep Pro features →</a>
+				<a href="' . esc_url( $upgrade_url ) . '" style="margin-left:8px;color:#666;">Upgrade to Pro — $29/year</a></p>
+				</div>';
+			} else {
+				// Opted in but no Freemius trial - show days remaining
+				$trial_url = admin_url('admin.php?page=ezcache-pricing&trial=true');
+				echo '<div class="notice notice-info" style="border-left-color:#f0b849;padding:12px 15px;">
+				<p style="font-size:14px;margin:0;">🎉 <strong>Pro Trial Active!</strong> <strong>' . $days_remaining . ' days remaining</strong> — all premium features are unlocked.
+				<a href="' . esc_url( $trial_url ) . '" style="margin-left:10px;background:#f0b849;color:#000;padding:5px 15px;border-radius:4px;text-decoration:none;font-weight:bold;">Start Free Freemius Trial →</a>
+				<a href="' . esc_url( $upgrade_url ) . '" style="margin-left:8px;color:#666;">Upgrade to Pro — $29/year</a></p>
+				</div>';
+			}
+			return;
+		}
+
+		// Trial expired
+		if ( get_option( \Upress\EzCache\PremiumFeatures::TRIAL_OPTION ) && $days_remaining === 0 ) {
+			$upgrade_url = function_exists('ezc_fs') ? ezc_fs()->get_upgrade_url() : '#';
+			echo '<div class="notice notice-warning" style="padding:12px 15px;">
+			<p style="font-size:14px;margin:0;">⚠️ <strong>Your Pro trial has ended.</strong> Some features have been disabled.
+			<a href="' . esc_url( $upgrade_url ) . '" style="margin-left:10px;background:#0073aa;color:#fff;padding:5px 15px;border-radius:4px;text-decoration:none;font-weight:bold;">Upgrade to Pro — $29/year</a></p>
+			</div>';
+		}
+	}
+
 	function maybe_show_advanced_cache_notice() {
 		$webp_queue = get_site_option( 'ezcache_convert_images_to_webp_reprocess_queue' );
 		if ( ! $webp_queue ) {
@@ -745,5 +821,240 @@ class Admin {
 		}
 
 		return $show_admin_bar;
+	}
+
+	/**
+	 * Inject premium feature gates into the UI
+	 */
+
+	/**
+	 * @deprecated Branding is now handled by the Vue 2.0 frontend (options.css/options.js).
+	 * This method is no longer hooked. Kept for reference only.
+	 */
+	function inject_branding_css() {
+		$screen = get_current_screen();
+		if ( ! $screen || strpos( $screen->id, 'ezcache' ) === false ) {
+			return;
+		}
+		?>
+		<style>
+			/* ezCache 2026 Branding */
+			.ezcache-screen-header {
+				background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%) !important;
+				color: #fff !important;
+				padding: 24px 28px !important;
+				border-radius: 12px !important;
+				margin: 20px 0 24px !important;
+				display: flex !important;
+				align-items: center !important;
+				gap: 12px !important;
+				font-size: 22px !important;
+				font-weight: 700 !important;
+				position: relative;
+				overflow: hidden;
+				border: 1px solid rgba(255,204,0,0.2);
+				box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+			}
+			.ezcache-screen-header::before {
+				content: none;
+				font-size: 0;
+				margin-right: 4px;
+			}
+			.ezcache-screen-header::after {
+				content: none;
+				position: absolute;
+				right: 20px;
+				top: 50%;
+				transform: translateY(-50%);
+				background: #ffcc00;
+				color: #0a0a0a;
+				font-size: 11px;
+				font-weight: 800;
+				padding: 4px 12px;
+				border-radius: 20px;
+				letter-spacing: 0.5px;
+			}
+			.ezcache-screen-header svg {
+				fill: #ffcc00 !important;
+				width: 28px !important;
+				height: 28px !important;
+			}
+
+			/* Modernize toggle panels */
+			.ezcache-toggle-panel,
+			.ezcache-options .postbox,
+			.ezcache-options .card {
+				border-radius: 10px !important;
+				border: 1px solid #e0e0e0 !important;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+				overflow: hidden;
+			}
+
+			/* Save button styling */
+			.wpb-button-primary {
+				background: linear-gradient(135deg, #ffcc00, #e6b800) !important;
+				color: #0a0a0a !important;
+				border: none !important;
+				border-radius: 8px !important;
+				font-weight: 700 !important;
+				text-transform: none !important;
+				box-shadow: 0 2px 10px rgba(255,204,0,0.25) !important;
+				transition: all 0.2s !important;
+			}
+			.wpb-button-primary:hover {
+				transform: translateY(-1px) !important;
+				box-shadow: 0 4px 16px rgba(255,204,0,0.35) !important;
+			}
+
+			/* Sidebar menu icon */
+			#toplevel_page_ezcache .wp-menu-image::before {
+				content: '⚡' !important;
+				font-size: 18px !important;
+			}
+		</style>
+		<?php
+	}
+	function inject_premium_ui_gates() {
+		$screen = get_current_screen();
+		if ( 'toplevel_page_ezcache' != $screen->id ) {
+			return;
+		}
+
+		if ( \Upress\EzCache\PremiumFeatures::is_premium() ) {
+			return; // Premium user, no gates needed
+		}
+
+		$premium_features = \Upress\EzCache\PremiumFeatures::get_premium_features();
+		$features_json = json_encode( $premium_features );
+		$upgrade_url = function_exists( 'ezc_fs' ) ? ezc_fs()->get_upgrade_url() : '#pricing';
+
+		?>
+		<style>
+			.ezcache-premium-overlay {
+				position: relative;
+			}
+			.ezcache-premium-overlay::after {
+				content: '🔒 PRO';
+				position: absolute;
+				top: 50%;
+				right: 12px;
+				transform: translateY(-50%);
+				background: #ffcc00;
+				color: #1a1a1a;
+				font-size: 11px;
+				font-weight: 800;
+				padding: 2px 10px;
+				border-radius: 12px;
+				pointer-events: none;
+			}
+			.ezcache-premium-disabled {
+				opacity: 0.45;
+				pointer-events: none;
+				user-select: none;
+			}
+			.ezcache-upgrade-banner {
+				background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+				border: 1px solid #ffcc00;
+				border-radius: 12px;
+				padding: 20px 24px;
+				margin: 16px 0;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				flex-wrap: wrap;
+				gap: 16px;
+			}
+			.ezcache-upgrade-banner .upgrade-text {
+				color: #e0e0e0;
+				font-size: 14px;
+				line-height: 1.5;
+			}
+			.ezcache-upgrade-banner .upgrade-text strong {
+				color: #ffcc00;
+			}
+			.ezcache-upgrade-btn {
+				background: #ffcc00;
+				color: #1a1a1a;
+				border: none;
+				padding: 10px 24px;
+				border-radius: 50px;
+				font-size: 14px;
+				font-weight: 700;
+				text-decoration: none;
+				cursor: pointer;
+				white-space: nowrap;
+				transition: all 0.2s;
+			}
+			.ezcache-upgrade-btn:hover {
+				background: #e6b800;
+				transform: translateY(-1px);
+				box-shadow: 0 4px 15px rgba(255,204,0,0.3);
+				color: #1a1a1a;
+			}
+		</style>
+		<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			var premiumFeatures = <?php echo $features_json; ?>;
+			var upgradeUrl = '<?php echo esc_url( $upgrade_url ); ?>';
+
+			function applyPremiumGates() {
+				// Find all checkboxes and select elements
+				var inputs = document.querySelectorAll('input[type="checkbox"], select, textarea');
+				
+				inputs.forEach(function(input) {
+					var id = input.id || '';
+					var name = input.name || '';
+					
+					// Check if this input's ID matches a premium feature
+					premiumFeatures.forEach(function(feature) {
+						if (id.indexOf(feature) !== -1 || name.indexOf(feature) !== -1) {
+							// Disable the input
+							input.disabled = true;
+							input.checked = false;
+							
+							// Find parent container and add overlay
+							var parent = input.closest('.form-group, div, tr');
+							if (parent && !parent.classList.contains('ezcache-premium-disabled')) {
+								parent.classList.add('ezcache-premium-disabled');
+								parent.classList.add('ezcache-premium-overlay');
+							}
+						}
+					});
+				});
+
+				// Add upgrade banner at the top of the main content
+				var mainContent = document.querySelector('.ezcache-main, .ezcache-options, .wrap');
+				if (mainContent && !document.querySelector('.ezcache-upgrade-banner')) {
+					var banner = document.createElement('div');
+					banner.className = 'ezcache-upgrade-banner';
+					banner.innerHTML = '<div class="upgrade-text">⚡ <strong>Upgrade to Pro</strong> to unlock CSS/JS optimization, WebP images, cache preloading, CDN, database cleanup and more — just <strong>$29/year</strong></div><a href="' + upgradeUrl + '" class="ezcache-upgrade-btn">🔓 Upgrade to Pro</a>';
+					
+					var firstChild = mainContent.firstChild;
+					if (firstChild) {
+						mainContent.insertBefore(banner, firstChild);
+					} else {
+						mainContent.appendChild(banner);
+					}
+				}
+			}
+
+			// Apply immediately and also watch for Vue rendering
+			setTimeout(applyPremiumGates, 500);
+			setTimeout(applyPremiumGates, 1500);
+			setTimeout(applyPremiumGates, 3000);
+
+			// Also watch for DOM changes (Vue renders async)
+			var observer = new MutationObserver(function() {
+				setTimeout(applyPremiumGates, 100);
+			});
+			var target = document.querySelector('#ezcache-options, .ezcache-options, .wrap');
+			if (target) {
+				observer.observe(target, { childList: true, subtree: true });
+				// Stop observing after 10 seconds to avoid performance issues
+				setTimeout(function() { observer.disconnect(); }, 10000);
+			}
+		});
+		</script>
+		<?php
 	}
 }

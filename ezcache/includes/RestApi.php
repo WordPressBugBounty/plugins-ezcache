@@ -15,6 +15,8 @@ class RestApi {
 		$this->delete( '/cache',    '\Upress\EzCache\Rest\CacheController@destroy' );
 		$this->post( '/webp',    '\Upress\EzCache\Rest\WebpController@process' );
 		$this->delete( '/webp',    '\Upress\EzCache\Rest\WebpController@destroy' );
+		$this->get( '/webp/status', '\Upress\EzCache\Rest\WebpController@status' );
+		$this->post( '/webp/scan',   '\Upress\EzCache\Rest\WebpController@scan' );
 		$this->get(    '/status',   '\Upress\EzCache\Rest\StatusController@show' );
 		$this->get(    '/license',  '\Upress\EzCache\Rest\LicenseController@show' );
 		$this->patch(  '/license',  '\Upress\EzCache\Rest\LicenseController@update' );
@@ -26,6 +28,25 @@ class RestApi {
 		$this->post(   '/performance/preload', '\Upress\EzCache\Rest\PerformanceController@runPreload' );
 		$this->delete( '/performance/preload', '\Upress\EzCache\Rest\PerformanceController@stopPreload' );
 		$this->post(   '/performance/db-cleanup', '\Upress\EzCache\Rest\PerformanceController@runDbCleanup' );
+
+		$this->get(    '/dev-mode',  '\Upress\EzCache\Rest\SettingsController@devModeStatus' );
+		$this->post(   '/dev-mode',  '\Upress\EzCache\Rest\SettingsController@enableDevMode' );
+		$this->delete( '/dev-mode',  '\Upress\EzCache\Rest\SettingsController@disableDevMode' );
+		// Diagnostic
+		$this->post(   '/diagnose',  '\Upress\EzCache\Rest\SettingsController@diagnose' );
+
+		// Redis
+		$this->get(    '/redis-status', '\Upress\EzCache\Rest\RedisController@status' );
+		$this->post(   '/redis-flush',  '\Upress\EzCache\Rest\RedisController@flush' );
+		$this->post(   '/redis-toggle', '\Upress\EzCache\Rest\RedisController@toggle' );
+
+		// Critical CSS
+		$this->post(   '/performance/critical-css', '\Upress\EzCache\Rest\PerformanceController@generateCriticalCss' );
+
+		// Settings backup
+		$this->get(    '/backups',   '\Upress\EzCache\Rest\SettingsController@listBackups' );
+		$this->post(   '/backups',   '\Upress\EzCache\Rest\SettingsController@createBackup' );
+		$this->post(   '/backups/restore', '\Upress\EzCache\Rest\SettingsController@restoreBackup' );
 
 		add_action( 'rest_api_init', [ $this, 'rest_api_init' ] );
 	}
@@ -70,7 +91,13 @@ class RestApi {
 			'route' => $route,
 			'params' => [
 				'methods' => $http_method,
-				'callback' => $callback,
+				'callback' => function($request) use ($callback) {
+				try {
+					return call_user_func($callback, $request);
+				} catch (\Exception $e) {
+					return new \WP_Error('server_error', $e->getMessage(), ['status' => 500]);
+				}
+			},
 				'permission_callback' => $permission_callback,
 			]
 		];

@@ -1,106 +1,193 @@
 <?php
+
 namespace Upress\EzCache\Rest;
 
-use Upress\EzCache\Cache;
 use Upress\EzCache\Settings;
-use WP_REST_Request;
+use Upress\EzCache\PremiumFeatures;
 
 class SettingsController {
 
 	function show() {
 		$settings = Settings::get_settings();
 
-		return wp_send_json_success( $settings );
+		return [
+			'success' => true,
+			'data'    => $settings,
+		];
 	}
 
-	/**
-	 * @param WP_REST_Request $request
-	 */
 	function update( $request ) {
-		$default_settings = (array) Settings::get_default_settings();
+		$json             = $request->get_json_params();
+		$updated_settings = [];
+		foreach ( $json as $key => $value ) {
+			$updated_settings[ $key ] = $value;
+		}
 
-		$input = (array) $request->get_json_params();
-		$updated_settings = $this->sanitize_settings( $input, $default_settings );
+		// Strip premium features for free users
+		if ( ! PremiumFeatures::is_premium() ) {
+			$premium = PremiumFeatures::get_premium_features();
+			foreach ( $premium as $key ) {
+				unset( $updated_settings[ $key ] );
+			}
+		}
 
 		Settings::set_settings( $updated_settings );
-		Cache::instance()->clear_cache();
 
-		return wp_send_json_success();
+		return [
+			'success' => true,
+			'data'    => Settings::get_settings(),
+		];
 	}
 
 	function destroy() {
 		$default_settings = (array) Settings::get_default_settings();
 		Settings::set_settings( $default_settings );
-		Cache::instance()->clear_cache();
 
-		return wp_send_json_success( $default_settings );
+		return [
+			'success' => true,
+			'data'    => Settings::get_settings(),
+		];
 	}
 
-	/**
-	 * Sanitize the settings based on the predefined $default_settings
-	 *
-	 * @param array $settings
-	 * @param array $default_settings
-	 *
-	 * @return array
-	 */
-	protected function sanitize_settings( $settings, $default_settings ) {
-		$sanitized = [];
+	// ── Dev Mode ──────────────────────────────────────────
 
-		foreach( $settings as $key => $value ) {
-			if ( ! isset( $default_settings[ $key ] ) ) {
-				continue;
-			}
+	function devModeStatus() {
+		$status = \Upress\EzCache\Cache::get_dev_mode_status();
+		return [ 'success' => true, 'data' => $status ];
+	}
 
-			$type = gettype( $default_settings[ $key ] );
+	function enableDevMode( $request ) {
+		$duration = $request->get_param( 'duration' );
+		if ( $duration === 'permanent' || $duration === '0' ) {
+			$seconds = 0;
+		} else {
+			$seconds = max( (int) $duration, 3600 );
+		}
+		\Upress\EzCache\Cache::enable_dev_mode( $seconds );
+		return [
+			'success' => true,
+			'data' => [ 'active' => true, 'message' => 'Development mode enabled' ],
+		];
+	}
 
-			if ( 'array' === $type || 'object' === $type ) {
-				$value = $this->sanitize_settings( ((array) $value), $default_settings[ $key ] );
-			} elseif ( method_exists( $this, "sanitize_{$type}" ) ) {
-				$value = call_user_func( [ $this, "sanitize_{$type}" ], $value );
-			} else {
-				continue;
-			}
+	function disableDevMode() {
+		\Upress\EzCache\Cache::disable_dev_mode();
+		return [
+			'success' => true,
+			'data' => [ 'active' => false, 'message' => 'Development mode disabled' ],
+		];
+	}
 
-			$sanitized[ $key ] = $value;
+	// ── Diagnostics ──────────────────────────────────────
+
+	function diagnose( $request ) {
+		$site_url = home_url();
+
+		// Call Go diagnostic API
+		$response = wp_remote_post( 'http://localhost:7150/analyze', [
+			'headers' => [ 'Content-Type' => 'application/json' ],
+			'body'    => json_encode( [ 'url' => $site_url ] ),
+			'timeout' => 20,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			return new \WP_Error( 'diag_error', $response->get_error_message(), [ 'status' => 500 ] );
 		}
 
-		return $sanitized;
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		return [ 'success' => true, 'data' => $data ];
 	}
 
-	/**
-	 * @param mixed $bool
-	 *
-	 * @return bool
-	 */
-	protected function sanitize_boolean( $bool ) {
-		return !! $bool;
+	// ── Settings Backup/Restore ──────────────────────────
+
+	private function get_backup_dir() {
+		$dir = WP_CONTENT_DIR . '/ezcache-backups';
+		if ( ! is_dir( $dir ) ) {
+			wp_mkdir_p( $dir );
+			file_put_contents( $dir . '/.htaccess', 'Deny from all' );
+			file_put_contents( $dir . '/index.php', '<?php // Silence is golden' );
+		}
+		return $dir;
 	}
 
-	/**
-	 * @param mixed $int
-	 *
-	 * @return int
-	 */
-	protected function sanitize_integer( $int ) {
-		return intval( $int );
+	function listBackups() {
+		$dir = $this->get_backup_dir();
+		$files = glob( $dir . '/*.json' );
+		$backups = [];
+
+		foreach ( $files as $file ) {
+			$content = json_decode( file_get_contents( $file ), true );
+			$backups[] = [
+				'filename'   => basename( $file ),
+				'name'       => isset( $content['name'] ) ? $content['name'] : basename( $file, '.json' ),
+				'created_at' => isset( $content['created_at'] ) ? $content['created_at'] : date( 'Y-m-d H:i:s', filemtime( $file ) ),
+				'size'       => filesize( $file ),
+			];
+		}
+
+		usort( $backups, function( $a, $b ) { return strcmp( $b['created_at'], $a['created_at'] ); } );
+
+		return [ 'success' => true, 'data' => $backups ];
 	}
 
-	/**
-	 * @param mixed $double
-	 *
-	 * @return float
-	 */
-	protected function sanitize_double( $double ) {
-		return doubleval( $double );
+	function createBackup( $request ) {
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		if ( empty( $name ) ) {
+			$name = 'Backup ' . date( 'Y-m-d H:i' );
+		}
+
+		$settings = \Upress\EzCache\Settings::get_settings();
+		$backup = [
+			'name'       => $name,
+			'created_at' => date( 'Y-m-d H:i:s' ),
+			'version'    => defined( 'EZCACHE_VERSION' ) ? EZCACHE_VERSION : '2.1.0',
+			'site_url'   => home_url(),
+			'settings'   => $settings,
+		];
+
+		$dir = $this->get_backup_dir();
+		$filename = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) . '-' . date( 'Ymd-His' ) . '.json';
+		file_put_contents( $dir . '/' . $filename, json_encode( $backup, JSON_PRETTY_PRINT ) );
+
+		return [
+			'success' => true,
+			'data'    => [
+				'filename' => $filename,
+				'message'  => 'Backup created: ' . $name,
+			],
+		];
 	}
 
-	/**
-	 * @param mixed $string
-	 *
-	 * @return string
-	 */
-	protected function sanitize_string( $string ) {
-		return sanitize_textarea_field( $string );
+	function restoreBackup( $request ) {
+		$filename = sanitize_file_name( $request->get_param( 'filename' ) );
+
+		// Handle file upload
+		$upload = $request->get_param( 'settings_json' );
+		if ( ! empty( $upload ) ) {
+			$backup = json_decode( $upload, true );
+		} else {
+			$dir = $this->get_backup_dir();
+			$filepath = $dir . '/' . $filename;
+
+			if ( ! file_exists( $filepath ) ) {
+				return new \WP_Error( 'not_found', 'Backup file not found', [ 'status' => 404 ] );
+			}
+
+			$backup = json_decode( file_get_contents( $filepath ), true );
+		}
+
+		if ( empty( $backup['settings'] ) ) {
+			return new \WP_Error( 'invalid_backup', 'Invalid backup file', [ 'status' => 400 ] );
+		}
+
+		\Upress\EzCache\Settings::set_settings( (array) $backup['settings'] );
+
+		return [
+			'success' => true,
+			'data'    => [
+				'message'  => 'Settings restored from: ' . ( $backup['name'] ?? $filename ),
+				'settings' => \Upress\EzCache\Settings::get_settings(),
+			],
+		];
 	}
 }

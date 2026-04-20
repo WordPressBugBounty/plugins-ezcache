@@ -49,6 +49,10 @@ class Updater {
 				self::update_1_5();
 			}
 
+			if ( version_compare( self::$current_version, '2.0.0', '<' ) ) {
+				self::update_2_0();
+			}
+
 			if ( version_compare( self::$current_version, EZCACHE_VERSION, '=' ) ) {
 				self::verify_tables();
 			}
@@ -142,4 +146,32 @@ class Updater {
 			throw new Exception( $wpdb->last_error );
 		}
 	}
+
+
+	protected static function update_2_0() {
+		global $wpdb;
+		$table = $wpdb->prefix . "ezcache_webp_images";
+
+		if ( ! $wpdb->get_row( "SHOW TABLES LIKE '{$table}'" ) ) {
+			self::update_0_1_20190811();
+			self::update_0_1_20190812();
+			return;
+		}
+
+		$cols = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`" );
+		foreach ( $cols as $col ) {
+			if ( $col->Field === "original_size" && strpos( $col->Type, "bigint" ) === false ) {
+				$wpdb->query( "ALTER TABLE `{$table}` MODIFY `original_size` bigint(20) UNSIGNED NOT NULL DEFAULT 0" );
+			}
+			if ( $col->Field === "webp_size" && strpos( $col->Type, "bigint" ) === false ) {
+				$wpdb->query( "ALTER TABLE `{$table}` MODIFY `webp_size` bigint(20) UNSIGNED NOT NULL DEFAULT 0" );
+			}
+		}
+
+		$indexes = $wpdb->get_results( "SHOW INDEX FROM `{$table}` WHERE Column_name = 'status'" );
+		if ( empty( $indexes ) ) {
+			$wpdb->query( "ALTER TABLE `{$table}` ADD INDEX `status_idx` (`status`)" );
+		}
+	}
+
 }

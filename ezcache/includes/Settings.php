@@ -92,6 +92,20 @@ class Settings {
 		    'db_cleanup_orphan_postmeta'    => false,
 		    'db_optimize_tables'            => false,
 		    'db_cleanup_schedule'           => 'never',
+
+		    // Redis Object Cache (v2.2.0+)
+		    'enable_redis_object_cache' => false,
+		    'enable_redis_fullpage'     => false,
+
+		    // Critical CSS (v2.2.0+)
+		    'enable_critical_css' => false,
+
+		    // Speculative Loading (v2.2.0+)
+		    'enable_speculative_loading' => false,
+		    'speculative_mode'           => 'moderate',
+
+		    // 103 Early Hints (v2.2.0+)
+		    'enable_early_hints' => false,
 	    ];
     }
 

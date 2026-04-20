@@ -5,6 +5,8 @@ use Upress\EzCache\Settings;
 use Upress\EzCache\Preload;
 use Upress\EzCache\DatabaseCleanup;
 use WP_REST_Request;
+use Upress\EzCache\PremiumFeatures;
+use Upress\EzCache\CriticalCSS;
 
 class PerformanceController {
 
@@ -37,6 +39,13 @@ class PerformanceController {
 		'db_cleanup_orphan_postmeta',
 		'db_optimize_tables',
 		'db_cleanup_schedule',
+		// v2.2.0
+		'enable_redis_object_cache',
+		'enable_redis_fullpage',
+		'enable_critical_css',
+		'enable_speculative_loading',
+		'speculative_mode',
+		'enable_early_hints',
 	];
 
 	/**
@@ -46,8 +55,24 @@ class PerformanceController {
 		$all_settings = Settings::get_settings();
 		$settings = [];
 		
+		$bool_keys = [
+			'enable_preload', 'preload_on_cache_clear', 'preload_crawl_homepage_links',
+			'lazy_load_images', 'lazy_load_iframes', 'defer_js', 'remove_query_strings',
+			'dns_prefetch', 'preconnect', 'heartbeat_control', 'cdn_enabled',
+			'db_cleanup_revisions', 'db_cleanup_auto_drafts', 'db_cleanup_trashed_posts',
+			'db_cleanup_spam_comments', 'db_cleanup_trashed_comments', 'db_cleanup_expired_transients',
+			'db_cleanup_orphan_postmeta', 'db_optimize_tables',
+			'enable_redis_object_cache', 'enable_redis_fullpage', 'enable_critical_css',
+			'enable_speculative_loading', 'enable_early_hints',
+		];
+
 		foreach ( self::$performance_keys as $key ) {
-			$settings[ $key ] = isset( $all_settings->{$key} ) ? $all_settings->{$key} : null;
+			$val = isset( $all_settings->{$key} ) ? $all_settings->{$key} : null;
+			// Cast to boolean for checkbox fields
+			if ( in_array( $key, $bool_keys, true ) && $val !== null ) {
+				$val = (bool) $val;
+			}
+			$settings[ $key ] = $val;
 		}
 
 		$preload_status = [
@@ -80,6 +105,7 @@ class PerformanceController {
 				$current_settings[ $key ] = $this->sanitize_value( $key, $input[ $key ] );
 			}
 		}
+
 
 		Settings::set_settings( $current_settings );
 

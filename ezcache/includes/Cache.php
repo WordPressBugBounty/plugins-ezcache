@@ -17,6 +17,7 @@ use Upress\EzCache\FileOptimizer\JsCombiner;
 use Upress\EzCache\FileOptimizer\WebpConverter;
 use Upress\EzCache\ThirdParty\Minify_HTML;
 use Upress\EzCache\Utilities\Logger;
+use Upress\EzCache\PremiumFeatures;
 
 class Cache {
 	protected static $instance;
@@ -188,6 +189,10 @@ class Cache {
 	 * @return bool
 	 */
 	public function should_serve_cached_data() {
+		// Dev Mode — bypass cache entirely
+		if ( self::is_dev_mode_active() ) {
+			return false;
+		}
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			return false;
 		}
@@ -907,7 +912,8 @@ class Cache {
 
 		if ( ! apply_filters( 'wp_bost_hide_cache_time_comment', false ) ) {
 			$total_time = number_format( microtime( true ) - $this->cache_start_time, 2 );
-			$buffer     .= "\n<!-- Cached by ezCache -->\n<!-- Cache created in {$total_time}s -->";
+			$cache_type = ( \Upress\EzCache\Settings::get_settings()->enable_redis_fullpage ?? false ) ? 'Redis' : 'Disk';
+			$buffer     .= "\n<!-- Cached by ezCache | Full-Page Cache: {$cache_type} | Generated: " . date('Y-m-d H:i:s') . " | Time: {$total_time}s -->";
 		}
 
 		$buffer = apply_filters( 'ezcache_before_save_cache', $buffer );
@@ -1330,5 +1336,54 @@ class Cache {
 		$prefix = 'WIN' === strtoupper( substr( PHP_OS, 0, 3 ) ) ? '' : '/';
 
 		return $prefix . join( '/', $path );
+	}
+
+	/**
+	 * Check if Development Mode is active (file-based, works before WP loads)
+	 */
+	public static function is_dev_mode_active() {
+		$flag_file = (defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : dirname(__DIR__)) . '/cache/ezcache/.dev-mode';
+		if ( ! file_exists( $flag_file ) ) {
+			return false;
+		}
+		$expires = (int) trim( @file_get_contents( $flag_file ) );
+		if ( $expires === 0 ) {
+			return true;
+		}
+		if ( time() >= $expires ) {
+			@unlink( $flag_file );
+			return false;
+		}
+		return true;
+	}
+
+	public static function enable_dev_mode( $seconds = 3600 ) {
+		$dir = WP_CONTENT_DIR . '/cache/ezcache';
+		if ( ! is_dir( $dir ) ) {
+			@mkdir( $dir, 0755, true );
+		}
+		$expires = ( $seconds === 0 ) ? 0 : time() + $seconds;
+		file_put_contents( $dir . '/.dev-mode', (string) $expires );
+	}
+
+	public static function disable_dev_mode() {
+		@unlink( WP_CONTENT_DIR . '/cache/ezcache/.dev-mode' );
+	}
+
+	public static function get_dev_mode_status() {
+		$flag = WP_CONTENT_DIR . '/cache/ezcache/.dev-mode';
+		if ( ! file_exists( $flag ) ) {
+			return [ 'active' => false ];
+		}
+		$expires = (int) trim( @file_get_contents( $flag ) );
+		if ( $expires > 0 && time() >= $expires ) {
+			@unlink( $flag );
+			return [ 'active' => false ];
+		}
+		return [
+			'active'    => true,
+			'expires'   => $expires === 0 ? 'permanent' : $expires,
+			'remaining' => $expires === 0 ? null : $expires - time(),
+		];
 	}
 }
