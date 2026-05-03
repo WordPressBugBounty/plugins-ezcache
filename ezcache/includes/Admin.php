@@ -28,14 +28,14 @@ class Admin {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
-		add_action( 'admin_footer', [ $this, 'inject_premium_ui_gates' ] );
+		// Premium UI gates removed — Pro is unlocked for everyone.
 		// inject_branding_css removed — branding is now built into Vue 2.0
 		add_action( 'plugin_action_links_' . plugin_basename( $this->plugin->plugin_file ), [
 			$this,
 			'plugin_action_links',
 		] );
 		add_action( 'admin_notices', [ $this, 'maybe_show_advanced_cache_notice' ] );
-		add_action( 'admin_notices', [ $this, 'show_trial_banner' ] );
+		// Trial banner removed — licensing system disabled.
 
 		add_action( 'admin_bar_menu', [ $this, 'add_admin_bar_button' ], 999 );
 		add_action( 'admin_post_wpb_clear_cache', [ $this, 'admin_clear_cache' ] );
@@ -417,24 +417,23 @@ class Admin {
 		wp_enqueue_style( 'ezcache-options', $this->plugin->plugin_url . '/assets/dist/css/options.css', [], $ver );
 		// branding.css removed — branding is embedded in Vue 2.0 options.css
 
-		$upgrade_url = function_exists( 'ezc_fs' ) ? ezc_fs()->get_upgrade_url() : 'https://checkout.freemius.com/mode/dialog/plugin/27915/plan_id/60240/';
-
+		// Freemius removed — Pro is unlocked for everyone.
 		wp_localize_script( 'ezcache-options', 'ezcache', [
 			'assets_url'             => esc_url_raw( EZCACHE_URL . '/assets' ),
 			'ajax_url'               => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
 			'rest_url'               => esc_url_raw( rest_url() ),
 			'ajax_nonce'             => wp_create_nonce( 'ezcache-options' ),
 			'rest_nonce'             => wp_create_nonce( 'wp_rest' ),
-			'is_premium'             => \Upress\EzCache\PremiumFeatures::is_premium(),
-			'is_trial'               => \Upress\EzCache\PremiumFeatures::is_builtin_trial(),
-			'trial_days_remaining'   => \Upress\EzCache\PremiumFeatures::trial_days_remaining(),
+			'is_premium'             => true,
+			'is_trial'               => false,
+			'trial_days_remaining'   => 0,
 			'premium_features'       => \Upress\EzCache\PremiumFeatures::get_premium_features(),
-			'upgrade_url'            => esc_url_raw( $upgrade_url ),
-			'is_freemius_registered' => function_exists('ezc_fs') && ezc_fs()->is_registered(),
-			'is_freemius_trial'      => function_exists('ezc_fs') && ezc_fs()->is_trial(),
-			'is_freemius_paying'     => function_exists('ezc_fs') && ezc_fs()->is_paying(),
-			'trial_start_url'        => function_exists('ezc_fs') ? admin_url('admin.php?page=ezcache-pricing&trial=true') : '',
-			'opt_in_url'             => function_exists('ezc_fs') && !ezc_fs()->is_registered() ? ezc_fs()->get_activation_url() : '',
+			'upgrade_url'            => '',
+			'is_freemius_registered' => false,
+			'is_freemius_trial'      => false,
+			'is_freemius_paying'     => true,
+			'trial_start_url'        => '',
+			'opt_in_url'             => '',
 			'is_rtl'                 => is_rtl(),
 			'site_url'               => esc_url_raw( untrailingslashit( site_url() ) ),
 			'performance_url'        => admin_url( 'admin.php?page=ezcache-performance' ),
@@ -691,7 +690,7 @@ class Admin {
 			'schedule_webp_images_process' => __( "Re-Schedule WebP Process Scheduled Task", 'ezcache' ),
 
 			'license_key'                   => __( 'License Key', 'ezcache' ),
-			'license_key_description'       => __( 'Manage your license through Freemius. Upgrade to Pro for unlimited WebP image optimization.', 'ezcache' ),
+			'license_key_description'       => __( 'Pro features are unlocked.', 'ezcache' ),
 			'deactivate_license'            => __( 'Account Settings', 'ezcache' ),
 			'activate_license'              => __( 'Manage License', 'ezcache' ),
 			'license_valid'                 => __( 'License is valid', 'ezcache' ),
@@ -729,59 +728,8 @@ class Admin {
 	 * Show trial banner in admin
 	 */
 	function show_trial_banner() {
-		// Only show on ezCache pages
-		$screen = get_current_screen();
-		if ( ! $screen || strpos( $screen->id, 'ezcache' ) === false ) {
-			return;
-		}
-
-		$is_builtin_trial = \Upress\EzCache\PremiumFeatures::is_builtin_trial();
-		$days_remaining = \Upress\EzCache\PremiumFeatures::trial_days_remaining();
-		$is_freemius_registered = function_exists('ezc_fs') && ezc_fs()->is_registered();
-		$is_freemius_trial = function_exists('ezc_fs') && ezc_fs()->is_trial();
-		$is_freemius_paying = function_exists('ezc_fs') && ezc_fs()->is_paying();
-
-		// Paying user - no banner needed
-		if ( $is_freemius_paying ) {
-			return;
-		}
-
-		// Freemius trial active - show Freemius managed trial info
-		if ( $is_freemius_trial ) {
-			return;
-		}
-
-		// Built-in trial active
-		if ( $is_builtin_trial && $days_remaining > 0 ) {
-			$upgrade_url = function_exists('ezc_fs') ? ezc_fs()->get_upgrade_url() : '#';
-			if ( ! $is_freemius_registered ) {
-				// Not opted in yet - show banner to activate trial via Freemius
-				$opt_in_url = ezc_fs()->get_activation_url();
-				echo '<div class="notice notice-info" style="border-left-color:#f0b849;padding:12px 15px;">
-				<p style="font-size:14px;margin:0;">🎉 <strong>Pro Trial Active!</strong> All premium features are unlocked for <strong>' . $days_remaining . ' days</strong>.
-				<a href="' . esc_url( $opt_in_url ) . '" style="margin-left:10px;background:#f0b849;color:#000;padding:5px 15px;border-radius:4px;text-decoration:none;font-weight:bold;">Activate to keep Pro features →</a>
-				<a href="' . esc_url( $upgrade_url ) . '" style="margin-left:8px;color:#666;">Upgrade to Pro — $29/year</a></p>
-				</div>';
-			} else {
-				// Opted in but no Freemius trial - show days remaining
-				$trial_url = admin_url('admin.php?page=ezcache-pricing&trial=true');
-				echo '<div class="notice notice-info" style="border-left-color:#f0b849;padding:12px 15px;">
-				<p style="font-size:14px;margin:0;">🎉 <strong>Pro Trial Active!</strong> <strong>' . $days_remaining . ' days remaining</strong> — all premium features are unlocked.
-				<a href="' . esc_url( $trial_url ) . '" style="margin-left:10px;background:#f0b849;color:#000;padding:5px 15px;border-radius:4px;text-decoration:none;font-weight:bold;">Start Free Freemius Trial →</a>
-				<a href="' . esc_url( $upgrade_url ) . '" style="margin-left:8px;color:#666;">Upgrade to Pro — $29/year</a></p>
-				</div>';
-			}
-			return;
-		}
-
-		// Trial expired
-		if ( get_option( \Upress\EzCache\PremiumFeatures::TRIAL_OPTION ) && $days_remaining === 0 ) {
-			$upgrade_url = function_exists('ezc_fs') ? ezc_fs()->get_upgrade_url() : '#';
-			echo '<div class="notice notice-warning" style="padding:12px 15px;">
-			<p style="font-size:14px;margin:0;">⚠️ <strong>Your Pro trial has ended.</strong> Some features have been disabled.
-			<a href="' . esc_url( $upgrade_url ) . '" style="margin-left:10px;background:#0073aa;color:#fff;padding:5px 15px;border-radius:4px;text-decoration:none;font-weight:bold;">Upgrade to Pro — $29/year</a></p>
-			</div>';
-		}
+		// No-op — licensing/trial system removed. Pro is unlocked for everyone.
+		return;
 	}
 
 	function maybe_show_advanced_cache_notice() {
@@ -926,7 +874,7 @@ class Admin {
 
 		$premium_features = \Upress\EzCache\PremiumFeatures::get_premium_features();
 		$features_json = json_encode( $premium_features );
-		$upgrade_url = function_exists( 'ezc_fs' ) ? ezc_fs()->get_upgrade_url() : '#pricing';
+		$upgrade_url = '#pricing';
 
 		?>
 		<style>

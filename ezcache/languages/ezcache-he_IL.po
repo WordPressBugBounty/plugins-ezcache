@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Blank WordPress Pot v1.0.0\n"
-"Report-Msgid-Bugs-To: Translator Name <translations@example.com>\n"
-"POT-Creation-Date: 2025-07-30 16:28+0300\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/ezcache\n"
+"POT-Creation-Date: 2026-04-20T07:37:43+03:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Your Team <translations@example.com>\n"
@@ -17,8 +17,9 @@ msgstr ""
 "2 : 3);\n"
 "X-Textdomain-Support: yesX-Generator: Poedit 1.6.4\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Poedit-KeywordsList: "
-"__;_e;esc_html_e;esc_html_x:1,2c;esc_html__;esc_attr_e;esc_attr_x:1,2c;esc_attr__;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2;_x:1,2c;_n:1,2;_n_noop:1,2;__ngettext:1,2;__ngettext_noop:1,2;_c,_nc:4c,1,2\n"
+"X-Poedit-KeywordsList: __;_e;esc_html_e;esc_html_x:1,2c;esc_html__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_attr__;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2;"
+"_x:1,2c;_n:1,2;_n_noop:1,2;__ngettext:1,2;__ngettext_noop:1,2;_c,_nc:4c,1,2\n"
 "X-Poedit-Basepath: ..\n"
 "X-Generator: Poedit 3.6\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -28,257 +29,491 @@ msgstr ""
 "X-Poedit-SearchPathExcluded-3: .git\n"
 "X-Poedit-SearchPathExcluded-4: vendor\n"
 
-#: ezcache.php:219
-msgid "Every 10 Minutes"
-msgstr "כל 10 דקות"
-
-#: ezcache.php:225 includes/Admin.php:512
-msgid "Hourly"
-msgstr "פעם בשעה"
-
-#: ezcache.php:231
-msgid "Every 3 Hours"
-msgstr "כל 3 שעות"
-
-#: ezcache.php:237
-msgid "Every 6 Hours"
-msgstr "כל 6 שעות"
-
-#: ezcache.php:243
-msgid "Every 12 Hours"
-msgstr "כל 12 שעות"
-
-#: ezcache.php:249 includes/Admin.php:510
-msgid "Daily"
-msgstr "פעם ביום"
-
-#: ezcache.php:255
-msgid "Every 3 Days"
-msgstr "כל 3 ימים"
-
-#: ezcache.php:261
-msgid "Every 5 Days"
-msgstr "כל 5 ימים"
-
-#: ezcache.php:267
-msgid "Every 7 Days"
-msgstr "כל 7 ימים"
-
-#: includes/Admin.php:119
-msgid "Caching"
-msgstr "מטמון"
-
-#: includes/Admin.php:146
-msgid "Do not cache this page"
-msgstr "אל תשמור מטמון עבור עמוד זה"
-
-#: includes/Admin.php:146
-msgid "Do not cache this post"
-msgstr "אל תשמור מטמון עבור פוסט זה"
-
-#: includes/Admin.php:213 includes/Admin.php:241 includes/Admin.php:274
-#: includes/Admin.php:484
-msgid "Settings"
-msgstr "הגדרות"
-
-#: includes/Admin.php:234 includes/Admin.php:264 includes/Admin.php:265
-#: includes/Admin.php:470 includes/Admin.php:666
+#. Plugin Name of the plugin
+#: ezcache.php includes/Admin.php:237 includes/Admin.php:487
+#: includes/Admin.php:797
 msgid "ezCache"
 msgstr "ezCache"
 
-#: includes/Admin.php:248 includes/Admin.php:480
+#. Plugin URI of the plugin
+#: ezcache.php
+msgid "https://ezcache-wp.com"
+msgstr "https://ezcache-wp.com"
+
+#. Description of the plugin
+#: ezcache.php
+msgid ""
+"🚀 ezCache 2026 — Lightning-fast WordPress caching with CSS/JS optimization, "
+"WebP images, preloading, database cleanup &amp; more. Free &amp; Pro."
+msgstr "🚀 ezCache 2026 — מטמון מהיר-בזק לוורדפרס עם אופטימיזציית CSS/JS, תמונות WebP, טעינה מקדימה, ניקוי מסד נתונים ועוד. חינם ו-Pro."
+
+#. Author of the plugin
+#: ezcache.php
+msgid "uPress"
+msgstr "uPress"
+
+#. Author URI of the plugin
+#: ezcache.php
+msgid "https://www.upress.io"
+msgstr "https://www.upress.io"
+
+#: ezcache.php:288
+msgid "Every 10 Minutes"
+msgstr "כל 10 דקות"
+
+#: ezcache.php:294 includes/Admin.php:583
+msgid "Hourly"
+msgstr "פעם בשעה"
+
+#: ezcache.php:300
+msgid "Every 3 Hours"
+msgstr "כל 3 שעות"
+
+#: ezcache.php:306
+msgid "Every 6 Hours"
+msgstr "כל 6 שעות"
+
+#: ezcache.php:312
+msgid "Every 12 Hours"
+msgstr "כל 12 שעות"
+
+#: ezcache.php:318 includes/Admin.php:581 includes/AdvancedSettingsPage.php:289
+msgid "Daily"
+msgstr "פעם ביום"
+
+#: ezcache.php:324
+msgid "Every 3 Days"
+msgstr "כל 3 ימים"
+
+#: ezcache.php:330
+msgid "Every 5 Days"
+msgstr "כל 5 ימים"
+
+#: ezcache.php:336
+msgid "Every 7 Days"
+msgstr "כל 7 ימים"
+
+#: includes/Admin.php:122
+msgid "Caching"
+msgstr "מטמון"
+
+#: includes/Admin.php:149
+msgid "Do not cache this page"
+msgstr "אל תשמור מטמון עבור עמוד זה"
+
+#: includes/Admin.php:149
+msgid "Do not cache this post"
+msgstr "אל תשמור מטמון עבור פוסט זה"
+
+#: includes/Admin.php:244 includes/Admin.php:277 includes/Admin.php:501
+msgid "Settings"
+msgstr "הגדרות"
+
+#: includes/Admin.php:251 includes/Admin.php:497
 msgid "Clear Cache"
 msgstr "נקה זיכרון מטמון"
 
-#: includes/Admin.php:273 includes/Admin.php:486
+#: includes/Admin.php:276 includes/Admin.php:503
 msgid "Statistics"
 msgstr "סטטיסטיקות"
 
-#: includes/Admin.php:275 includes/Admin.php:485
+#: includes/Admin.php:278 includes/Admin.php:502
 msgid "Advanced Settings"
 msgstr "הגדרות מתקדמות"
 
-#: includes/Admin.php:276 includes/Admin.php:487
+#: includes/Admin.php:279 includes/Admin.php:504
 msgid "License"
 msgstr "רשיון"
 
-#: includes/Admin.php:393
+#: includes/Admin.php:396
 msgid "This application requires JavaScript to run"
 msgstr "יישום זה דורש JavaScript"
 
-#: includes/Admin.php:468
+#: includes/Admin.php:485
 msgid "Select All"
 msgstr "בחר הכל"
 
-#: includes/Admin.php:469
+#: includes/Admin.php:486
 msgid "Select None"
 msgstr "הסר הכל"
 
-#: includes/Admin.php:471
+#: includes/Admin.php:488
 msgid "Enabled"
 msgstr "מופעל"
 
-#: includes/Admin.php:472
+#: includes/Admin.php:489
 msgid "Disabled"
 msgstr "כבוי"
 
-#: includes/Admin.php:473
+#: includes/Admin.php:490
 msgid "Run a Speed Test"
 msgstr "הרץ בדיקת מהירות"
 
-#: includes/Admin.php:474
+#: includes/Admin.php:491
 msgid "Save Settings"
 msgstr "שמור שינויים"
 
-#: includes/Admin.php:475
+#: includes/Admin.php:492
 msgid "Reset"
 msgstr "איפוס"
 
-#: includes/Admin.php:476
+#: includes/Admin.php:493
 msgid "Reset Settings"
 msgstr "איפוס הגדרות"
 
-#: includes/Admin.php:477
+#: includes/Admin.php:494
 msgid "Are you sure you want to reset the settings to their default values?"
 msgstr "האם אתה בטוח שברצונך לאפס את ההגדרות לערכי ברירת המחדל שלהן?"
 
-#: includes/Admin.php:478
+#: includes/Admin.php:495
 msgid "Settings updated."
 msgstr "ההגדרות עודכנו."
 
-#: includes/Admin.php:479
+#: includes/Admin.php:496
 msgid "Could not save settings."
 msgstr "שגיאה בשמירת הגדרות."
 
-#: includes/Admin.php:481
+#: includes/Admin.php:498
 msgid "Cache has been cleared."
 msgstr "המטמון נוקה."
 
-#: includes/Admin.php:482
+#: includes/Admin.php:499
 msgid "Documentation"
 msgstr "תיעוד"
 
-#: includes/Admin.php:483
+#: includes/Admin.php:500
 msgid "Knowledgebase"
 msgstr "מאגר הידע"
 
-#: includes/Admin.php:488
+#: includes/Admin.php:505
+msgid "Performance"
+msgstr "ביצועים"
+
+#: includes/Admin.php:508 includes/AdvancedSettingsPage.php:119
+msgid "Cache Preload"
+msgstr "טעינת מטמון מקדימה"
+
+#: includes/Admin.php:509 includes/Admin.php:701
+msgid "Status"
+msgstr "סטטוס"
+
+#: includes/Admin.php:510
+msgid "Processed"
+msgstr "עובד"
+
+#: includes/Admin.php:511
+msgid "remaining"
+msgstr "נותרו"
+
+#: includes/Admin.php:512 includes/AdvancedSettingsPage.php:138
+msgid "Run Preload Now"
+msgstr "הפעל טעינה מקדימה עכשיו"
+
+#: includes/Admin.php:513 includes/AdvancedSettingsPage.php:139
+msgid "Stop Preload"
+msgstr "עצור טעינה מקדימה"
+
+#: includes/Admin.php:514
+msgid "Preload Settings"
+msgstr "הגדרות טעינה מקדימה"
+
+#: includes/Admin.php:515 includes/AdvancedSettingsPage.php:149
+msgid "Enable Preload"
+msgstr "הפעל טעינה מראש"
+
+#: includes/Admin.php:516 includes/AdvancedSettingsPage.php:152
+msgid ""
+"Activate the cache preloader. Pages will be crawled in the background to "
+"keep the cache warm."
+msgstr "הפעל את מנגנון הטעינה המקדימה. עמודים ייסרקו ברקע כדי לשמור את המטמון חם."
+
+#: includes/Admin.php:517 includes/AdvancedSettingsPage.php:156
+msgid "Preload after cache clear"
+msgstr "טען מחדש לאחר ניקוי מטמון"
+
+#: includes/Admin.php:518 includes/AdvancedSettingsPage.php:160
+msgid "Crawl homepage links"
+msgstr "סרוק קישורים מדף הבית"
+
+#: includes/Admin.php:519 includes/AdvancedSettingsPage.php:164
+msgid "Sitemap URL (optional)"
+msgstr "כתובת Sitemap (אופציונלי)"
+
+#: includes/Admin.php:520 includes/AdvancedSettingsPage.php:167
+msgid ""
+"Leave blank to auto-detect /wp-sitemap.xml, /sitemap_index.xml or /sitemap."
+"xml."
+msgstr "השאר ריק לזיהוי אוטומטי של /wp-sitemap.xml, /sitemap_index.xml או /sitemap.xml."
+
+#: includes/Admin.php:521 includes/AdvancedSettingsPage.php:171
+msgid "URLs per batch"
+msgstr "כתובות לכל אצווה"
+
+#: includes/Admin.php:522 includes/AdvancedSettingsPage.php:176
+msgid "Front-end Optimizations"
+msgstr "אופטימיזציות צד לקוח"
+
+#: includes/Admin.php:523 includes/AdvancedSettingsPage.php:179
+msgid "Lazy load images"
+msgstr "טעינה עצלה של תמונות"
+
+#: includes/Admin.php:524 includes/AdvancedSettingsPage.php:183
+msgid "Lazy load iframes"
+msgstr "טעינה עצלה של iframes"
+
+#: includes/Admin.php:525 includes/AdvancedSettingsPage.php:187
+msgid "Defer JavaScript"
+msgstr "דחיית JavaScript"
+
+#: includes/Admin.php:526 includes/AdvancedSettingsPage.php:190
+msgid "Adds defer to local script tags to reduce render-blocking JS."
+msgstr "מוסיף defer לתגיות script מקומיות כדי להפחית JavaScript חוסם רינדור."
+
+#: includes/Admin.php:527 includes/AdvancedSettingsPage.php:194
+msgid "Defer JS exclusions"
+msgstr "החרגות דחיית JS"
+
+#: includes/Admin.php:528 includes/AdvancedSettingsPage.php:197
+msgid ""
+"One match per line. URLs containing any of these strings will not be "
+"deferred."
+msgstr "התאמה אחת בכל שורה. קישורים המכילים מחרוזות אלו לא יידחו."
+
+#: includes/Admin.php:529 includes/AdvancedSettingsPage.php:201
+msgid "Remove query strings from static assets"
+msgstr "הסרת פרמטרים מכתובות משאבים סטטיים"
+
+#: includes/Admin.php:530 includes/AdvancedSettingsPage.php:205
+msgid "DNS prefetch hosts"
+msgstr "שרתים ל-DNS Prefetch"
+
+#: includes/Admin.php:531 includes/AdvancedSettingsPage.php:211
+msgid "Preconnect hosts"
+msgstr "שרתים ל-Preconnect"
+
+#: includes/Admin.php:532 includes/AdvancedSettingsPage.php:218
+msgid "Heartbeat Control"
+msgstr "שליטה בפעימות"
+
+#: includes/Admin.php:533 includes/AdvancedSettingsPage.php:221
+msgid "Enable heartbeat control"
+msgstr "הפעל שליטה בפעימות"
+
+#: includes/Admin.php:534 includes/AdvancedSettingsPage.php:225
+msgid "Mode"
+msgstr "מצב"
+
+#: includes/Admin.php:535 includes/AdvancedSettingsPage.php:228
+msgid "Reduce activity (60s ticks)"
+msgstr "הפחת פעילות (פעימה כל 60 שניות)"
+
+#: includes/Admin.php:536 includes/AdvancedSettingsPage.php:229
+msgid "Disable completely"
+msgstr "השבת לחלוטין"
+
+#: includes/Admin.php:537 includes/AdvancedSettingsPage.php:235
+msgid "CDN"
+msgstr "CDN"
+
+#: includes/Admin.php:538 includes/AdvancedSettingsPage.php:238
+msgid "Enable CDN rewriting"
+msgstr "הפעל שכתוב CDN"
+
+#: includes/Admin.php:539 includes/AdvancedSettingsPage.php:242
+msgid "CDN URL"
+msgstr "כתובת CDN"
+
+#: includes/Admin.php:540 includes/AdvancedSettingsPage.php:245
+msgid ""
+"Static assets under /wp-content/uploads, /themes and /plugins will be "
+"rewritten to this host."
+msgstr "משאבים סטטיים תחת /wp-content/uploads, /themes ו-/plugins ישוכתבו לשרת זה."
+
+#: includes/Admin.php:541 includes/AdvancedSettingsPage.php:250
+msgid "Database Cleanup"
+msgstr "ניקוי מסד נתונים"
+
+#: includes/Admin.php:542 includes/AdvancedSettingsPage.php:253
+msgid "Delete post revisions"
+msgstr "מחיקת גרסאות קודמות"
+
+#: includes/Admin.php:543 includes/AdvancedSettingsPage.php:257
+msgid "Delete auto drafts"
+msgstr "מחיקת טיוטות אוטומטיות"
+
+#: includes/Admin.php:544 includes/AdvancedSettingsPage.php:261
+msgid "Delete trashed posts"
+msgstr "מחיקת פוסטים בפח"
+
+#: includes/Admin.php:545 includes/AdvancedSettingsPage.php:265
+msgid "Delete spam comments"
+msgstr "מחיקת תגובות ספאם"
+
+#: includes/Admin.php:546 includes/AdvancedSettingsPage.php:269
+msgid "Delete trashed comments"
+msgstr "מחיקת תגובות בפח"
+
+#: includes/Admin.php:547 includes/AdvancedSettingsPage.php:273
+msgid "Delete expired transients"
+msgstr "מחיקת transients שפגו"
+
+#: includes/Admin.php:548 includes/AdvancedSettingsPage.php:277
+msgid "Delete orphan post meta"
+msgstr "מחיקת מטא-דאטה יתומה של פוסטים"
+
+#: includes/Admin.php:549 includes/AdvancedSettingsPage.php:281
+msgid "Run OPTIMIZE TABLE on all tables"
+msgstr "הרץ OPTIMIZE TABLE על כל הטבלאות"
+
+#: includes/Admin.php:550 includes/AdvancedSettingsPage.php:285
+msgid "Automatic cleanup schedule"
+msgstr "תזמון ניקוי אוטומטי"
+
+#: includes/Admin.php:551 includes/AdvancedSettingsPage.php:288
+msgid "Never (manual only)"
+msgstr "אף פעם (ידני בלבד)"
+
+#: includes/Admin.php:552
+msgid "Run Cleanup Now"
+msgstr "הרץ ניקוי עכשיו"
+
+#: includes/Admin.php:553 includes/AdvancedSettingsPage.php:48
+msgid "Preload started in the background."
+msgstr "הטעינה המקדימה החלה ברקע."
+
+#: includes/Admin.php:554 includes/AdvancedSettingsPage.php:49
+msgid "Preload cancelled."
+msgstr "הטעינה המקדימה בוטלה."
+
+#: includes/Admin.php:555 includes/AdvancedSettingsPage.php:50
+msgid "Database cleanup completed."
+msgstr "ניקוי מסד הנתונים הושלם."
+
+#: includes/Admin.php:556
+msgid "Saving"
+msgstr "שומר"
+
+#: includes/Admin.php:557
+msgid "An error occurred"
+msgstr "אירעה שגיאה"
+
+#: includes/Admin.php:559
 msgid "Recommended"
 msgstr "מומלץ"
 
-#: includes/Admin.php:489
+#: includes/Admin.php:560
 msgid "Basic Settings"
 msgstr "הגדרות בסיסיות"
 
-#: includes/Admin.php:490
+#: includes/Admin.php:561
 msgid "OK"
 msgstr "אישור"
 
-#: includes/Admin.php:491
+#: includes/Admin.php:562
 msgid "Cancel"
 msgstr "ביטול"
 
-#: includes/Admin.php:492
+#: includes/Admin.php:563
 msgid "Delete"
 msgstr "מחיקה"
 
-#: includes/Admin.php:494
+#: includes/Admin.php:565
 msgid "Don't cache pages for known users"
 msgstr "אל תשמור מטמון עבור משתמשים מוכרים"
 
-#: includes/Admin.php:495
+#: includes/Admin.php:566
 msgid "This disables cache for logged in users."
 msgstr "פעולה זו מבטלת את השימוש בזיכרון מטמון עבור משתמשים מחוברים."
 
-#: includes/Admin.php:496
+#: includes/Admin.php:567
 msgid ""
 "The admin bar will be hidden for all users to prevent it being saved into "
 "the cache."
 msgstr "סרגל המנהלים יוסתר עבור כל המשתמשים כדי למנוע את השמירה שלו במטמון."
 
-#: includes/Admin.php:497
+#: includes/Admin.php:568
 msgid "Don't cache pages for comment authors"
 msgstr "אל תשמור מטמון עבור משתמשים אשר השאירו תגובה"
 
-#: includes/Admin.php:498
+#: includes/Admin.php:569
 msgid ""
 "Do not save cache for users who saved their name and email for the next time "
 "they comment."
 msgstr ""
 "אל תשמור מטמון עבור משתמשים אשר השאירו תגובה ובחרו לשמור את הפרטים שלהם."
 
-#: includes/Admin.php:499
+#: includes/Admin.php:570
 msgid "Cache Expiry"
 msgstr "תוקף מטמון"
 
-#: includes/Admin.php:500
+#: includes/Admin.php:571
 msgid "Cache Timeout"
 msgstr "תוקף מטמון"
 
-#: includes/Admin.php:501
+#: includes/Admin.php:572
 msgid ""
 "How long to keep the cached data, the recommended and effective starting "
 "point is one day."
 msgstr ""
 "לכמה זמן לשמור את המטמון עבור כל עמוד, נקודת התחלה מומלצת ויעילה היא יום אחד."
 
-#: includes/Admin.php:502
+#: includes/Admin.php:573
 msgid "Check for stale cache every"
 msgstr "בדוק מטמון אשר פג תוקף כל"
 
-#: includes/Admin.php:503
+#: includes/Admin.php:574
 msgid ""
 "Automatically check for stale cache files and delete them at a set interval."
 msgstr "אוטומטית בודק תוקף קבצי מטמון ומוחק קבצים אשר פגו."
 
-#: includes/Admin.php:504 includes/Admin.php:508
+#: includes/Admin.php:575 includes/Admin.php:579
 msgid "Interval"
 msgstr "מתוזמן"
 
-#: includes/Admin.php:505
+#: includes/Admin.php:576
 msgid "Every"
 msgstr "כל"
 
-#: includes/Admin.php:506
+#: includes/Admin.php:577
 msgid "Seconds"
 msgstr "שניות"
 
-#: includes/Admin.php:507
+#: includes/Admin.php:578
 msgid "At Time"
 msgstr "בשעה"
 
-#: includes/Admin.php:509
+#: includes/Admin.php:580 includes/AdvancedSettingsPage.php:290
 msgid "Weekly"
 msgstr "פעם בשבוע"
 
-#: includes/Admin.php:511
+#: includes/Admin.php:582
 msgid "Twice Daily"
 msgstr "פעמיים ביום"
 
-#: includes/Admin.php:513
+#: includes/Admin.php:584
 msgid "At"
 msgstr "ב"
 
-#: includes/Admin.php:514
+#: includes/Admin.php:585
 msgid "Cache Bypass"
 msgstr "עקיפת מטמון"
 
-#: includes/Admin.php:515
+#: includes/Admin.php:586
 msgid "Don't cache pages where the URLs contain parameters in the query string"
 msgstr "אל תשמור מטמון עבור קישורים המכילים פרמטרים בכתובת (Query string)"
 
-#: includes/Admin.php:516
+#: includes/Admin.php:587
 msgid ""
 "Don't save cache when the URL contains query string parameters, such as ?"
 "page_id=15 at the end of the URL."
 msgstr ""
 "אל תשמור מטמון לעמוד אם הקישור מכיר פרמטרים, לדוגמה ?page_id=15 בסוף הקישור."
 
-#: includes/Admin.php:517
+#: includes/Admin.php:588
 msgid "Separate cache for mobile devices"
 msgstr "שמור מטמון נפרד למובייל"
 
-#: includes/Admin.php:518
+#: includes/Admin.php:589
 msgid ""
 "Save separate cache files for mobile browsers and a separate file for "
 "desktop browsers, you should only enable this option if your theme is not "
@@ -289,21 +524,21 @@ msgstr ""
 "במחשבים, מומלץ להפעיל אפשרות זו רק במידה והתבנית אינה רספונסיבית והינך משתמש "
 "בתבנית או תוסף המייצרים גירסה נפרדת למובייל."
 
-#: includes/Admin.php:519
+#: includes/Admin.php:590
 msgid "Clear cache when a post or page is published or updated"
 msgstr "נקה באופן אוטומטי את זכרון המטמון עבור פוסט או דף שעודכן"
 
-#: includes/Admin.php:520
+#: includes/Admin.php:591
 msgid ""
 "Keep your posts up to date even when they are updated by clearing their "
 "cache."
 msgstr "נקה באופן אוטומטי את זכרון המטמון עבור פוסט או דף שעודכן."
 
-#: includes/Admin.php:521
+#: includes/Admin.php:592
 msgid "Clear homepage cache when a post or page is published or updated"
 msgstr "נקה באופן אוטומטי את זכרון המטמון של דף הבית כאשר פוסט או דף מתעדכן"
 
-#: includes/Admin.php:522
+#: includes/Admin.php:593
 msgid ""
 "Make sure your visitors read the latest posts by clearing the cache when you "
 "update or publish a post."
@@ -311,60 +546,60 @@ msgstr ""
 "ודא שהמבקרים שלך קוראים את ההודעות העדכניות ביותר על ידי ניקוי המטמון בעת "
 "עדכון או פרסום של פוסט, וכאשר גולשים משאירים תגובות על פוסט."
 
-#: includes/Admin.php:523
+#: includes/Admin.php:594
 msgid "Disable caching for the following pages"
 msgstr "בטל מטמון לסוגי העמודים הבאים"
 
-#: includes/Admin.php:524
+#: includes/Admin.php:595
 msgid "Single Posts"
 msgstr "עמוד פוסט"
 
-#: includes/Admin.php:525
+#: includes/Admin.php:596
 msgid "Pages"
 msgstr "עמודים"
 
-#: includes/Admin.php:526
+#: includes/Admin.php:597
 msgid "Front Page"
 msgstr "דף ראשי"
 
-#: includes/Admin.php:527
+#: includes/Admin.php:598
 msgid "Home"
 msgstr "דף הבית"
 
-#: includes/Admin.php:528
+#: includes/Admin.php:599
 msgid "Archives"
 msgstr "ארכיון"
 
-#: includes/Admin.php:529
+#: includes/Admin.php:600
 msgid "Tags"
 msgstr "תגיות"
 
-#: includes/Admin.php:530
+#: includes/Admin.php:601
 msgid "Categories"
 msgstr "קטגוריות"
 
-#: includes/Admin.php:531
+#: includes/Admin.php:602
 msgid "Feeds"
 msgstr "פידים"
 
-#: includes/Admin.php:532
+#: includes/Admin.php:603
 msgid "Search Results"
 msgstr "תוצאות חיפוש"
 
-#: includes/Admin.php:533
+#: includes/Admin.php:604
 msgid "Author Pages"
 msgstr "ארכיון מחבר"
 
-#: includes/Admin.php:534
+#: includes/Admin.php:605
 msgid "Links (URLs) which will never get cached"
 msgstr "קישורים (URLs) אשר לעולם לא יקבלו מטמון"
 
-#: includes/Admin.php:535
+#: includes/Admin.php:606
 msgid ""
 "Do not serve cached content if the URL matches any link in the following list"
 msgstr "אל תשמור מטמון אם הקישור של העמוד תואם לאחד מהקישורים הרשימה הבאה"
 
-#: includes/Admin.php:536
+#: includes/Admin.php:607
 msgid ""
 "The domain part of the URL will be stripped automatically. Use * wildcard "
 "character to match multiple characters at this position (eg. /product/*)."
@@ -372,20 +607,20 @@ msgstr ""
 "הדומיין של האתר שלך יוסר באופן אוטומטי, יש להשתמש בתו * כדי להכיל מספר תווים "
 "במיקום זה (למשל: /product/*)."
 
-#: includes/Admin.php:537
+#: includes/Admin.php:608
 msgid "User Agents which will never receive cached data"
 msgstr "User Agents אשר לעולם לא יקבלו מטמון"
 
-#: includes/Admin.php:538
+#: includes/Admin.php:609
 msgid "Do not serve cached content to the following useragents"
 msgstr ""
 "אל תשמור מטמון אם ה- User Agent שניגש לעמוד תואם לאחד מהנתונים ברשימה הבאה"
 
-#: includes/Admin.php:539
+#: includes/Admin.php:610
 msgid "Cookies which will prevent pages from getting cached"
 msgstr "עוגיות אשר כאשר מוגדרות לא יקבלו מטמון"
 
-#: includes/Admin.php:540
+#: includes/Admin.php:611
 msgid ""
 "Specify the cookies that when set in the visitor's browser, should prevent a "
 "page from getting cached (one per line)"
@@ -393,157 +628,157 @@ msgstr ""
 "ציין את העוגיות שכאשר הן מוגדרות בדפדפן הגולש, יש למנוע מהעמוד להיות מאוחסן "
 "במטמון (אחד בכל שורה)"
 
-#: includes/Admin.php:541
+#: includes/Admin.php:612
 msgctxt "rejected cookies example"
 msgid "wordpress_logged_in_"
 msgstr "wordpress_logged_in_"
 
-#: includes/Admin.php:542
+#: includes/Admin.php:613
 #, php-format
 msgid "%s Minutes"
 msgstr "%s דקות"
 
-#: includes/Admin.php:543
+#: includes/Admin.php:614
 #, php-format
 msgid "%s Hours"
 msgstr "%s שעות"
 
-#: includes/Admin.php:544
+#: includes/Admin.php:615
 #, php-format
 msgid "%s Days"
 msgstr "%s ימים"
 
-#: includes/Admin.php:545
+#: includes/Admin.php:616
 msgid "Never Expire"
 msgstr "לעולם לא יפוג"
 
-#: includes/Admin.php:546
+#: includes/Admin.php:617
 msgid "WP_CACHE is disabled in your wp-config.php, caching will not work."
 msgstr "WP_CACHE מבוטל בקובץ ההגדרות wp-config.php, המטמון לא יעבוד."
 
-#: includes/Admin.php:547
+#: includes/Admin.php:618
 msgid ""
 "advanced-cache.php is missing from your wp-content folder, caching will not "
 "work."
 msgstr ""
 "advanced-cache.php חסר בתקית ה wp-content של האתר שלך, המטמון לא יעבוד."
 
-#: includes/Admin.php:548
+#: includes/Admin.php:619
 msgid ""
 "Plugin is not installed properly, please reinstall, caching will not work."
 msgstr "התוסף לא מותקן כמו שצריך, אנא התקן אותו מחדש, המטמון לא יעבוד."
 
-#: includes/Admin.php:549
+#: includes/Admin.php:620
 msgctxt "statistics block title"
 msgid "Desktop"
 msgstr "מחשב שולחני"
 
-#: includes/Admin.php:550
+#: includes/Admin.php:621
 msgctxt "statistics block title"
 msgid "Mobile"
 msgstr "מובייל"
 
-#: includes/Admin.php:551
+#: includes/Admin.php:622
 msgctxt "statistics block title"
 msgid "Expire Cache"
 msgstr "מטמון פג תוקף"
 
-#: includes/Admin.php:552
+#: includes/Admin.php:623
 msgctxt "statistics block title"
 msgid "JavaScript Files"
 msgstr "קבצי JavaScript"
 
-#: includes/Admin.php:553
+#: includes/Admin.php:624
 msgctxt "statistics block title"
 msgid "CSS Files"
 msgstr "קבצי CSS"
 
-#: includes/Admin.php:554
+#: includes/Admin.php:625
 msgctxt "statistics block title"
 msgid "WebP Images"
 msgstr "תמונות WebP"
 
-#: includes/Admin.php:555
+#: includes/Admin.php:626
 msgid "ezCache Cache Usage"
 msgstr "נתוני שימוש מטמון ezCache"
 
-#: includes/Admin.php:556
+#: includes/Admin.php:627
 msgid "Images optimized with WebP."
 msgstr "תמונות אשר עברו מיטוב עם WebP."
 
-#: includes/Admin.php:557
+#: includes/Admin.php:628
 msgctxt "settings block title"
 msgid "Cache Bypass"
 msgstr "עקיפת מטמון"
 
-#: includes/Admin.php:558
+#: includes/Admin.php:629
 msgctxt "settings block title"
 msgid "Caching"
 msgstr "שמירת מטמון"
 
-#: includes/Admin.php:559
+#: includes/Admin.php:630
 msgctxt "settings block title"
 msgid "Performance"
 msgstr "ביצועים"
 
-#: includes/Admin.php:560
+#: includes/Admin.php:631
 msgctxt "settings block title"
 msgid "Cache Expiration"
 msgstr "תוקף מטמון"
 
-#: includes/Admin.php:561
+#: includes/Admin.php:632
 msgid "Optimize Google fonts"
 msgstr "מיטוב הגופנים של גוגל"
 
-#: includes/Admin.php:562
+#: includes/Admin.php:633
 msgid "Combine multiple Google Fonts declerations into one."
 msgstr "שילוב של מספר בקשות עבור גופני גוגל לתוך בקשה אחת."
 
-#: includes/Admin.php:563
+#: includes/Admin.php:634
 msgid "Minify HTML"
 msgstr "הפעל מזעור HTML"
 
-#: includes/Admin.php:564
+#: includes/Admin.php:635
 msgid "Minify the cached HTML to make cached files smaller."
 msgstr "צמצם את ה- HTML בכדי להקטין את משקל הקובץ השמור."
 
-#: includes/Admin.php:565
+#: includes/Admin.php:636
 msgid "Minify Inline JavaScript"
 msgstr "מזער JavaScript מוטמע"
 
-#: includes/Admin.php:566
+#: includes/Admin.php:637
 msgid "Include JavaScript embedded in the HTML in the minification process."
 msgstr "כלול JavaScript מוטמע ב- HTML בתהליך המזעור."
 
-#: includes/Admin.php:567
+#: includes/Admin.php:638
 msgid "Minify Inline CSS"
 msgstr "מזער CSS מוטמע"
 
-#: includes/Admin.php:568
+#: includes/Admin.php:639
 msgid "Include CSS embedded in the HTML in the minification process."
 msgstr "כלול CSS מוטמע ב- HTML בתהליך המזעור."
 
-#: includes/Admin.php:569
+#: includes/Admin.php:640
 msgid "Minify JavaScript"
 msgstr "הפעל מזעור JavaScript"
 
-#: includes/Admin.php:570
+#: includes/Admin.php:641
 msgid "Minify JavaScript files to reduce their size."
 msgstr "מזער קבצי JavaScript על מנת לצמצם את משקלם."
 
-#: includes/Admin.php:571
+#: includes/Admin.php:642
 msgid "Remove HTML comments"
 msgstr "הסר הערות HTML"
 
-#: includes/Admin.php:572
+#: includes/Admin.php:643
 msgid "Remove embeded comments from minified HTML."
 msgstr "הסר הערות בקוד HTML ממוזער."
 
-#: includes/Admin.php:573
+#: includes/Admin.php:644
 msgid "Combine JavaScript in Head"
 msgstr "איחוד JavaScript בראש העמוד"
 
-#: includes/Admin.php:574
+#: includes/Admin.php:645
 msgid ""
 "Combine multiple JavaScript files found in the head section of the HTML into "
 "one file."
@@ -551,11 +786,11 @@ msgstr ""
 "איחוד קבצי JavaScript מרובים הנמצאים בראש העמוד לקובץ אחד על מנת לצמצם בקשות "
 "HTTP."
 
-#: includes/Admin.php:575
+#: includes/Admin.php:646
 msgid "Combine JavaScript in Body"
 msgstr "איחוד JavaScript בגוף העמוד"
 
-#: includes/Admin.php:576
+#: includes/Admin.php:647
 msgid ""
 "Combine multiple JavaScript files found in the body section of the HTML into "
 "one file."
@@ -563,27 +798,27 @@ msgstr ""
 "איחוד קבצי JavaScript מרובים הנמצאים בגוף העמוד לקובץ אחד על מנת לצמצם בקשות "
 "HTTP."
 
-#: includes/Admin.php:577
+#: includes/Admin.php:648
 msgid "Combine Inline JavaScript in Head"
 msgstr "איחוד JavaScript מוטמע בראש העמוד"
 
-#: includes/Admin.php:578
+#: includes/Admin.php:649
 msgid ""
 "Combine JavaScript scripts found in the head section of the HTML into the "
 "combined JS file."
 msgstr "איחוד קבצי JavaScript מוטמעים הנמצאים בראש העמוד לקובץ המאוחד."
 
-#: includes/Admin.php:579
+#: includes/Admin.php:650
 msgid "Combine Inline JavaScript in Body"
 msgstr "איחוד JavaScript מוטמע בגוף העמוד"
 
-#: includes/Admin.php:580
+#: includes/Admin.php:651
 msgid ""
 "Combine JavaScript scripts found in the body section of the HTML into the "
 "combined JS file."
 msgstr "איחוד קבצי JavaScript מוטמעים הנמצאים בגוף העמוד לקובץ המאוחד."
 
-#: includes/Admin.php:581
+#: includes/Admin.php:652
 msgid ""
 "Elementor generates a unique JS file for each post/page which can cause the "
 "cache to use large amounts of disk space, to fix this make sure to exclude "
@@ -593,23 +828,23 @@ msgstr ""
 "לכמויות גדולות של נפח דיסק, על מנת לטפל בבעיה יש להחריג את קבצי ה- JS של "
 "אלמנטור (`elementor/js/post-*`) ממזעור/איחוד."
 
-#: includes/Admin.php:582
+#: includes/Admin.php:653
 msgid "Minify CSS"
 msgstr "הפעל מזעור CSS"
 
-#: includes/Admin.php:583
+#: includes/Admin.php:654
 msgid "Minify CSS files to reduce their size."
 msgstr "מזער קבצי CSS על מנת להקטין את משקלם."
 
-#: includes/Admin.php:584
+#: includes/Admin.php:655
 msgid "Combine CSS"
 msgstr "איחוד CSS"
 
-#: includes/Admin.php:585
+#: includes/Admin.php:656
 msgid "Combine multiple CSS files into one to reduce HTTP requests."
 msgstr "איחוד קבצי CSS מרובים לקובץ אחד על מנת לצמצם בקשות HTTP."
 
-#: includes/Admin.php:586
+#: includes/Admin.php:657
 msgid ""
 "Elementor generates a unique CSS file for each post/page which can cause the "
 "cache to use large amounts of disk space, to fix this make sure to exclude "
@@ -619,11 +854,11 @@ msgstr ""
 "לכמויות גדולות של נפח דיסק, על מנת לטפל בבעיה יש להחריג את קבצי ה- CSS של "
 "אלמנטור (`elementor/css/post-*`) ממזעור/איחוד."
 
-#: includes/Admin.php:587
+#: includes/Admin.php:658
 msgid "Disable WordPress Emoji"
 msgstr "בטל Emojis"
 
-#: includes/Admin.php:588
+#: includes/Admin.php:659
 msgid ""
 "Remove extra code related to Emoji from WordPress which was added recently "
 "to support Emoji in an older browsers."
@@ -631,18 +866,17 @@ msgstr ""
 "הסר קוד הקשור ל- Emoji אשר נוספה לאחרונה לוורדפרס בכדי לתמוך ב- Emoji "
 "בדפדפנים ישנים."
 
-#: includes/Admin.php:589
+#: includes/Admin.php:660
 msgid ""
 "Your server supports HTTP/2 which benefits from having this option kept "
 "disabled"
 msgstr "השרת שברשותך תומך ב- HTTP/2 אשר מפיק יותר תועלת כאשר אפשרות זו מכובה"
 
-#: includes/Admin.php:590
+#: includes/Admin.php:661
 msgid "Optimize Images With WebP"
 msgstr "מיטוב תמונות עם WebP"
 
-#: includes/Admin.php:592
-#, no-php-format
+#: includes/Admin.php:663
 msgid ""
 "WebP is a modern image format that provides superior lossless and lossy "
 "compression for images on the web. WebP lossless images are 26% smaller in "
@@ -652,49 +886,49 @@ msgstr ""
 "WebP קטנות ב- 26% לעומת תמונות PNG, וקטנות ב- 25-34% לעומת תמונות JPEG "
 "תואמות."
 
-#: includes/Admin.php:593
+#: includes/Admin.php:664
 msgid "Requires a premium license"
 msgstr "דורש מפתח רשיון"
 
-#: includes/Admin.php:594
+#: includes/Admin.php:665
 msgctxt "user agent example"
 msgid "Googlebot"
 msgstr "Googlebot"
 
-#: includes/Admin.php:595
+#: includes/Admin.php:666
 msgctxt "rejected uri example"
 msgid "/products/*"
 msgstr "/products/*"
 
-#: includes/Admin.php:596
+#: includes/Admin.php:667
 msgid "Optimized and cached CSS files."
 msgstr "קבצי CSS אשר עברו אופטימיזציה ונשמרו בזיכרון המטמון."
 
-#: includes/Admin.php:597
+#: includes/Admin.php:668
 msgid "Optimized and cached JavaScript files."
 msgstr "קבצי JavaScript אשר עברו אופטימיזציה ונשמרו בזיכרון המטמון."
 
-#: includes/Admin.php:598
+#: includes/Admin.php:669
 msgid "Cache data that has expired and waiting to be cleaned up."
 msgstr "זיכרון מטמון אשר אינו בשימוש משום שפג תוקפו וממתין לניקוי."
 
-#: includes/Admin.php:599
+#: includes/Admin.php:670
 msgid "Cache data for pages viewed from mobile devices."
 msgstr "שימוש ביזכרון מטמון הנעשה על ידי דפדפנים במכשירים ניידים."
 
-#: includes/Admin.php:600
+#: includes/Admin.php:671
 msgid "Cache data for pages viewed from desktop computers."
 msgstr "שימוש ביזכרון מטמון הנעשה על ידי דפדפנים במחשבים שולחניים."
 
-#: includes/Admin.php:601
+#: includes/Admin.php:672
 msgid "General"
 msgstr "כללי"
 
-#: includes/Admin.php:603
+#: includes/Admin.php:674
 msgid "Move combined CSS to footer"
 msgstr "העבר קובץ CSS מאוחד לתחתית העמוד"
 
-#: includes/Admin.php:604
+#: includes/Admin.php:675
 msgid ""
 "Eliminate render blocking CSS by moving the combined CSS file to the footer "
 "section."
@@ -702,11 +936,11 @@ msgstr ""
 "מנע עיכוב טעינה של העמוד עקב טעינת קוד CSS על ידי העברת טעינת קובץ ה- CSS "
 "המאוחד לתחתית העמוד."
 
-#: includes/Admin.php:605
+#: includes/Admin.php:676
 msgid "Critical CSS"
 msgstr "CSS קריטי"
 
-#: includes/Admin.php:606
+#: includes/Admin.php:677
 msgid ""
 "Critical CSS is the minimum set of blocking CSS required to render the first "
 "screen's worth of content to the user in order to render content to the user "
@@ -720,29 +954,29 @@ msgstr ""
 "CSS קריטי ניתן (ואף מומלץ) לייצר בצורה ידנית בהתאם לתוכן האתר ותוכנו, אך "
 "ישנם כלים אשר יכולים לייצר CSS קריטי בצורה אוטומטית."
 
-#: includes/Admin.php:607
+#: includes/Admin.php:678
 msgid "More information about Critical CSS"
 msgstr "למידע נוסף על CSS קריטי"
 
-#: includes/Admin.php:608
+#: includes/Admin.php:679
 msgid "Online Critical CSS Generator"
 msgstr "כלי יצירת CSS קריטי"
 
-#: includes/Admin.php:609
+#: includes/Admin.php:680
 msgid "Moving combined CSS to footer requires the Combine CSS option enabled."
 msgstr "העברת קובץ CSS מאוחד דורשת שאופצית איחוד CSS תהיה פעילה."
 
-#: includes/Admin.php:610
+#: includes/Admin.php:681
 msgid "Exclude JS/CSS files from optimization"
 msgstr "קבצי CSS/JS אשר לא יעברו אופטימיזציה"
 
-#: includes/Admin.php:611
+#: includes/Admin.php:682
 msgid ""
 "List filenames or paths to files which should be excluded from minification "
 "or combining."
 msgstr "רשימת שמות קבצים או נתיבים לקבצים אשר לא יעברו איחוד או מזעור."
 
-#: includes/Admin.php:612
+#: includes/Admin.php:683
 msgid ""
 "jquery.js\n"
 "recaptcha/api.js\n"
@@ -752,15 +986,15 @@ msgstr ""
 "recaptcha/api.js\n"
 "googleadservices.com"
 
-#: includes/Admin.php:614
+#: includes/Admin.php:685
 msgid "Advanced Tools"
 msgstr "כלים מתקדמים"
 
-#: includes/Admin.php:615
+#: includes/Admin.php:686
 msgid "Clear WebP Images Cache"
 msgstr "נקה את מטמון תמונות WebP"
 
-#: includes/Admin.php:616
+#: includes/Admin.php:687
 msgid ""
 "Are you sure that you want to delete all of the cached WebP images?\n"
 "Theses images will have to be converted again which may take some time."
@@ -768,117 +1002,113 @@ msgstr ""
 "האם אתה בטוח שברצונך למחוק את כל תמונות ה-WebP שמאוחסנות במטמון? תמונות אלה "
 "יצטרכו לעבור המרה מחדש, מה שעלול לקחת זמן מה."
 
-#: includes/Admin.php:617
+#: includes/Admin.php:688
 msgid "Error clearing WebP image cache"
 msgstr "שגיאה בניקוי תמונות WebP"
 
-#: includes/Admin.php:618
+#: includes/Admin.php:689
 msgid "Scheduled task queued"
 msgstr "משימה מתוזמנת נשלחה לתור"
 
-#: includes/Admin.php:619
+#: includes/Admin.php:690
 msgid "Error scheduling WebP process"
 msgstr "שגיאה בתזמון תהליך WebP"
 
-#: includes/Admin.php:620
+#: includes/Admin.php:691
 msgid "Re-Schedule WebP Process Scheduled Task"
 msgstr "תזמון מחדש של משימת המרת תמונות WebP"
 
-#: includes/Admin.php:622
+#: includes/Admin.php:693
 msgid "License Key"
 msgstr "מפתח רשיון"
 
-#: includes/Admin.php:623
+#: includes/Admin.php:694
 msgid ""
-"ezCache pro license will allow you to use the WebP image optimization "
-"without limits."
-msgstr "רישיון ezCache Pro יאפשר לך לבצע אופטימיזצית WebP לתמונות ללא מגבלות."
+"Manage your license through Freemius. Upgrade to Pro for unlimited WebP "
+"image optimization."
+msgstr "נהל את הרישיון שלך דרך Freemius. שדרג ל-Pro לאופטימיזציית תמונות WebP ללא הגבלה."
 
-#: includes/Admin.php:624
-msgid "Deactivate License"
-msgstr "בטל רשיון"
+#: includes/Admin.php:695
+msgid "Account Settings"
+msgstr "הגדרות חשבון"
 
-#: includes/Admin.php:625
-msgid "Activate License"
-msgstr "הפעל רשיון"
+#: includes/Admin.php:696
+msgid "Manage License"
+msgstr "ניהול רישיון"
 
-#: includes/Admin.php:626
+#: includes/Admin.php:697
 msgid "License is valid"
 msgstr "רשיון תקין"
 
-#: includes/Admin.php:627
+#: includes/Admin.php:698
 msgid "License is invalid"
 msgstr "הרשיון אינו תקין"
 
-#: includes/Admin.php:628
+#: includes/Admin.php:699
 #, php-format
 msgid "License expires at %s"
 msgstr "הרשיון יפוג ב %s"
 
-#: includes/Admin.php:629
+#: includes/Admin.php:700
 msgid "Unknown"
 msgstr "לא ידוע"
 
-#: includes/Admin.php:630
-msgid "Status"
-msgstr "סטטוס"
-
-#: includes/Admin.php:631
+#: includes/Admin.php:702
 msgid "License Details"
 msgstr "פרטי רשיון"
 
-#: includes/Admin.php:632
+#: includes/Admin.php:703
 msgid "License Type"
 msgstr "סוג רשיון"
 
-#: includes/Admin.php:633
+#: includes/Admin.php:704
 msgctxt "license type"
 msgid "Trial"
 msgstr "נסיון"
 
-#: includes/Admin.php:634
+#: includes/Admin.php:705
 msgctxt "license type"
 msgid "Pro"
 msgstr "Pro"
 
-#: includes/Admin.php:635
+#: includes/Admin.php:706
 msgid "Expires In"
 msgstr "יפוג בעוד"
 
-#: includes/Admin.php:636
+#: includes/Admin.php:707
 msgid "Expires At"
 msgstr "יפוג בתאריך"
 
-#: includes/Admin.php:637
+#: includes/Admin.php:708
 msgid "Convertions Left"
 msgstr "המרות נותרות"
 
-#: includes/Admin.php:638
+#: includes/Admin.php:709
 #, php-format
 msgid "%s days after first usage"
 msgstr "%s לאחר השימוש הראשון"
 
-#: includes/Admin.php:639
+#: includes/Admin.php:710
 msgid "Get a Pro License"
 msgstr "קבל רשיון Pro"
 
-#: includes/Admin.php:640
+#: includes/Admin.php:711
 msgid "Expired"
 msgstr "פג תוקף"
 
-#: includes/Admin.php:641
+#: includes/Admin.php:712
 msgid "Will not expire while hosted on uPress"
 msgstr "לא יפוג כאשר מאוחסן ב uPress"
 
-#: includes/Admin.php:643
+#: includes/Admin.php:714
 msgid "uPress Premium WordPress Hosting"
 msgstr "uPress אחסון וורדפרס מנוהל"
 
-#: includes/Admin.php:644
+#: includes/Admin.php:715
 msgid "www.upress.io"
 msgstr "www.upress.co.il"
 
-#: includes/Admin.php:645
+#: includes/Admin.php:716
 msgid ""
 "https://www.upress.io/?"
 "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
@@ -886,7 +1116,7 @@ msgstr ""
 "https://www.upress.co.il/?"
 "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
 
-#: includes/Admin.php:646
+#: includes/Admin.php:717
 #, php-format
 msgid ""
 "https://speedom.net/?url=%s&location=US-"
@@ -895,122 +1125,185 @@ msgstr ""
 "https://speedom.co.il/?"
 "url=%s&location=IL&utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
 
-#: includes/Admin.php:647
+#: includes/Admin.php:718
 msgid ""
-"https://ezcache.app/documentation?"
+"https://ezcache-wp.com/documentation?"
 "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
-msgstr ""
-"https://ezcache.app/documentation?"
-"utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://ezcache-wp.com/documentation?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
 
-#: includes/Admin.php:648
+#: includes/Admin.php:719
 msgid ""
-"https://ezcache.app/knowledgebase?"
+"https://ezcache-wp.com/knowledgebase?"
 "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
-msgstr ""
-"https://ezcache.app/knowledgebase?"
-"utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://ezcache-wp.com/knowledgebase?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
 
-#: includes/Admin.php:649
+#: includes/Admin.php:720
 msgid ""
-"https://ezcache.app/pricing?"
+"https://ezcache-wp.com/pricing?"
 "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
-msgstr ""
-"https://ezcache.app/pricing?"
-"utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://ezcache-wp.com/pricing?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
 
-#: includes/Admin.php:666
+#: includes/Admin.php:797
 #, php-format
 msgid "WebP Processing is currently running, %d images remaining."
 msgstr "עיבוד WebP פועל כעת, %d תמונות נותרות."
 
-#: includes/LicenseApi.php:76
-msgid "Can't set empty license key"
-msgstr "לא ניתן להגדיר מספר רשיון ריק"
+#: includes/AdvancedSettingsPage.php:47
+msgid "Settings saved."
+msgstr "ההגדרות נשמרו."
 
-#: includes/LicenseApi.php:202 includes/LicenseApi.php:203
-msgctxt "license API response message"
-msgid "Licence key successfully activated for the current domain"
-msgstr "האתר אושר לשימוש ברשיון זה"
+#: includes/AdvancedSettingsPage.php:109
+msgid "ezCache Performance"
+msgstr "ביצועים - ezCache"
 
-#: includes/LicenseApi.php:204
-msgctxt "license API response message"
-msgid "Licence key successfully unassigned"
-msgstr "האתר הוסר מהרשיון"
+#: includes/AdvancedSettingsPage.php:116
+msgid ""
+"These options expose the new performance modules introduced in ezCache "
+"1.7.0. They are stored in the same configuration file as the rest of the "
+"ezCache settings."
+msgstr "אפשרויות אלו חושפות את מודולי הביצועים החדשים שנוספו ב-ezCache 1.7.0. הן נשמרות באותו קובץ הגדרות כמו שאר הגדרות ezCache."
 
-#: includes/LicenseApi.php:205
-msgctxt "license API response message"
-msgid "Licence key is not valid for this website"
-msgstr "הרשיון אינו תקף עבור אתר זה"
+#: includes/AdvancedSettingsPage.php:124
+msgid "Status:"
+msgstr "סטטוס:"
 
-#: includes/LicenseApi.php:206
-msgctxt "license API response message"
-msgid "Licence key is active and valid for this website"
-msgstr "הרשיון פעיל ותקף בעבור אתר זה"
+#: includes/AdvancedSettingsPage.php:130
+#, php-format
+msgid "Processed: %1$d / %2$d (%3$d remaining)"
+msgstr "עובד: %1$d / %2$d (%3$d נותרו)"
 
-#: includes/LicenseApi.php:210
-msgctxt "license API response message"
-msgid "Licence key successfully deleted"
-msgstr "מפתח הרשיון נמחק בהצלחה"
+#: includes/AdvancedSettingsPage.php:296
+msgid "Save Performance Settings"
+msgstr "שמור הגדרות ביצועים"
 
-#: includes/LicenseApi.php:213
-msgctxt "license API response message"
-msgid "Invalid provided data"
-msgstr "הוזנו נתונים לא תקינים"
+#: includes/AdvancedSettingsPage.php:303
+msgid "Run Database Cleanup Now"
+msgstr "הרץ ניקוי מסד נתונים עכשיו"
 
-#: includes/LicenseApi.php:214
-msgctxt "license API response message"
-msgid "Invalid licence key"
-msgstr "מפתח רשיון לא תקין"
+#: includes/AdvancedSettingsPage.php:304
+msgid "Runs the cleanup tasks ticked above immediately."
+msgstr "מריץ את משימות הניקוי המסומנות למעלה באופן מיידי."
 
-#: includes/LicenseApi.php:215
-msgctxt "license API response message"
-msgid "Order does not exists anymore"
-msgstr "ההזמנה אינה קיימת יותר"
+#: includes/AdvancedSettingsPage.php:403
+msgid "Forbidden"
+msgstr "אסור"
 
-#: includes/LicenseApi.php:216
-msgctxt "license API response message"
-msgid "Order status not allowed"
-msgstr "סטטוס הזמנה לא מאופשר"
+#: includes/LicenseApi.php:93 includes/LicenseApi.php:104
+msgid "Please use the Freemius account page to manage your license."
+msgstr "אנא השתמש בעמוד חשבון Freemius לניהול הרישיון שלך."
 
-#: includes/LicenseApi.php:217
-msgctxt "license API response message"
-msgid "Invalid licence key or licence not active for domain"
-msgstr "מפתח רשיון לא תקין או לא תקף עבור דומיין זה"
+#: includes/Preload.php:69
+msgid "Every Minute (ezCache Preload)"
+msgstr "כל דקה (טעינה מקדימה ezCache)"
 
-#: includes/LicenseApi.php:218
-msgctxt "license API response message"
-msgid "Invalid data"
-msgstr "מידע לא תקין"
+#: includes/Rest/LicenseController.php:46
+#: includes/Rest/LicenseController.php:60
+msgid ""
+"License management is handled through Freemius. Please use the Account page."
+msgstr "ניהול הרישיון מתבצע דרך Freemius. אנא השתמש בעמוד החשבון."
 
-#: includes/LicenseApi.php:219
-msgctxt "license API response message"
-msgid "You had reached the maximum number of domains for this key"
-msgstr "הגעת למכסת האתרים שניתן להפעיל על מפתח רשיון זה"
+#~ msgid ""
+#~ "ezCache pro license will allow you to use the WebP image optimization "
+#~ "without limits."
+#~ msgstr ""
+#~ "רישיון ezCache Pro יאפשר לך לבצע אופטימיזצית WebP לתמונות ללא מגבלות."
 
-#: includes/LicenseApi.php:220
-msgctxt "license API response message"
-msgid "Licence key not active for current domain"
-msgstr "מפתח רשיון אינו תקף על דומיין זה"
+#~ msgid "Deactivate License"
+#~ msgstr "בטל רשיון"
 
-#: includes/LicenseApi.php:221
-msgctxt "license API response message"
-msgid "Licence key does not match this product"
-msgstr "מפתח הרשיון אינו תואם למוצר זה"
+#~ msgid "Activate License"
+#~ msgstr "הפעל רשיון"
 
-#: includes/LicenseApi.php:222
-msgctxt "license API response message"
-msgid "Licence is not active"
-msgstr "הרשיון אינו פעיל"
+#~ msgid ""
+#~ "https://ezcache.app/documentation?"
+#~ "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+#~ msgstr ""
+#~ "https://ezcache.app/documentation?"
+#~ "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
 
-#: includes/LicenseApi.php:223
-msgctxt "license API response message"
-msgid "Invalid product unique ID"
-msgstr "מזהה מוצר לא תקין"
+#~ msgid ""
+#~ "https://ezcache.app/knowledgebase?"
+#~ "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+#~ msgstr ""
+#~ "https://ezcache.app/knowledgebase?"
+#~ "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
 
-#: includes/LicenseApi.php:226
-msgid "Unknown error"
-msgstr "שגיאה לא ידועה"
+#~ msgid ""
+#~ "https://ezcache.app/pricing?"
+#~ "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+#~ msgstr ""
+#~ "https://ezcache.app/pricing?"
+#~ "utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+
+#~ msgid "Can't set empty license key"
+#~ msgstr "לא ניתן להגדיר מספר רשיון ריק"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence key successfully activated for the current domain"
+#~ msgstr "האתר אושר לשימוש ברשיון זה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence key successfully unassigned"
+#~ msgstr "האתר הוסר מהרשיון"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence key is not valid for this website"
+#~ msgstr "הרשיון אינו תקף עבור אתר זה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence key is active and valid for this website"
+#~ msgstr "הרשיון פעיל ותקף בעבור אתר זה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence key successfully deleted"
+#~ msgstr "מפתח הרשיון נמחק בהצלחה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Invalid provided data"
+#~ msgstr "הוזנו נתונים לא תקינים"
+
+#~ msgctxt "license API response message"
+#~ msgid "Invalid licence key"
+#~ msgstr "מפתח רשיון לא תקין"
+
+#~ msgctxt "license API response message"
+#~ msgid "Order does not exists anymore"
+#~ msgstr "ההזמנה אינה קיימת יותר"
+
+#~ msgctxt "license API response message"
+#~ msgid "Order status not allowed"
+#~ msgstr "סטטוס הזמנה לא מאופשר"
+
+#~ msgctxt "license API response message"
+#~ msgid "Invalid licence key or licence not active for domain"
+#~ msgstr "מפתח רשיון לא תקין או לא תקף עבור דומיין זה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Invalid data"
+#~ msgstr "מידע לא תקין"
+
+#~ msgctxt "license API response message"
+#~ msgid "You had reached the maximum number of domains for this key"
+#~ msgstr "הגעת למכסת האתרים שניתן להפעיל על מפתח רשיון זה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence key not active for current domain"
+#~ msgstr "מפתח רשיון אינו תקף על דומיין זה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence key does not match this product"
+#~ msgstr "מפתח הרשיון אינו תואם למוצר זה"
+
+#~ msgctxt "license API response message"
+#~ msgid "Licence is not active"
+#~ msgstr "הרשיון אינו פעיל"
+
+#~ msgctxt "license API response message"
+#~ msgid "Invalid product unique ID"
+#~ msgstr "מזהה מוצר לא תקין"
+
+#~ msgid "Unknown error"
+#~ msgstr "שגיאה לא ידועה"
 
 #~ msgid ""
 #~ "Critical CSS is the minimum set of blocking CSS required to render the "
@@ -1095,9 +1388,6 @@ msgstr "שגיאה לא ידועה"
 
 #~ msgid "Repair"
 #~ msgstr "תיקון"
-
-#~ msgid "Enable Preload"
-#~ msgstr "הפעל טעינה מראש"
 
 #~ msgid ""
 #~ "Preload will crawl your website every day and save a cached version of "
@@ -1593,8 +1883,8 @@ msgstr "שגיאה לא ידועה"
 #~ "Every day we improve our systems to continue to stand at the forefront of "
 #~ "managed hosting services, with an emphasis on WordPress."
 #~ msgstr ""
-#~ "בכל יום אנחנו משפרים ומחדשים את המערכות שלנו בכדי להמשיך ולעמוד בחוד-"
-#~ "החנית של שירותי אחסון אתרים מנוהל, עם דגש על WordPress."
+#~ "בכל יום אנחנו משפרים ומחדשים את המערכות שלנו בכדי להמשיך ולעמוד "
+#~ "בחוד-החנית של שירותי אחסון אתרים מנוהל, עם דגש על WordPress."
 
 #~ msgid ""
 #~ "We at uPress believe that security should not be limited to tech-savvy "
@@ -1877,8 +2167,8 @@ msgstr "שגיאה לא ידועה"
 #~ "the robots.txt file, you should allow search engines to attempt to "
 #~ "retrieve the page and fail."
 #~ msgstr ""
-#~ "וודא שאינך חוסם על ידי robots.txt את הקישורים שהנך מעוניין להיפטר "
-#~ "מהם ,עליך לאפשר למנועי החיפוש לנסות לאחזר את האתר ולהיכשל."
+#~ "וודא שאינך חוסם על ידי robots.txt את הקישורים שהנך מעוניין להיפטר מהם ,"
+#~ "עליך לאפשר למנועי החיפוש לנסות לאחזר את האתר ולהיכשל."
 
 #~ msgid ""
 #~ "Download the <a%s>disavow list</a> (spam domains or links that we want "
@@ -2115,8 +2405,8 @@ msgstr "שגיאה לא ידועה"
 
 #~ msgid ""
 #~ "Saving changes will overwrite the robots.txt file, if there is an "
-#~ "existing file (not generated by Booter) it will be renamed to "
-#~ "robots.txt.old."
+#~ "existing file (not generated by Booter) it will be renamed to robots.txt."
+#~ "old."
 #~ msgstr ""
 #~ "שמירת השינויים תדרוס את הקובץ robots.txt הקיים, במידה וקיים קובץ שלא נוצר "
 #~ "על ידי Booter השם שלו ישונה אל robots.txt.old."

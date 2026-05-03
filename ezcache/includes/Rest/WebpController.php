@@ -114,11 +114,8 @@ class WebpController {
 			return [ 'success' => true, 'data' => [ 'processed' => 0, 'remaining' => 0, 'message' => 'Done' ] ];
 		}
 
-		$license_key = '';
-		if ( function_exists( 'ezc_fs' ) && ezc_fs()->_get_license() ) {
-			$license_key = ezc_fs()->_get_license()->secret_key;
-		}
-		$converter = new WebpApi( $license_key ?: 'freemius_premium' );
+		// Freemius removed — Pro is unlocked for everyone.
+		$converter = new WebpApi( 'unlocked_pro' );
 		$processed = 0;
 
 		foreach ( $pending as $image ) {

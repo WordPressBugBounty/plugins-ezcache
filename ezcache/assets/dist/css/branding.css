@@ -1,0 +1,4 @@
+/* ezCache 2026 Branding - loaded separately, safe from Vue rebuild */
+.ezcache-screen-header{background:linear-gradient(135deg,#0a0a0a 0%,#1a1a2e 50%,#16213e 100%)!important;color:#fff!important;border-radius:12px!important;border:1px solid rgba(255,204,0,.2)!important;box-shadow:0 4px 20px rgba(0,0,0,.15)!important;position:relative!important}
+.ezcache-screen-header svg{fill:#ffcc00!important}
+.ezcache-screen-header::after{content:'v2.0'!important;position:absolute!important;right:16px!important;top:50%!important;transform:translateY(-50%)!important;background:#ffcc00!important;color:#0a0a0a!important;font-size:10px!important;font-weight:800!important;padding:3px 10px!important;border-radius:20px!important;letter-spacing:.5px!important;width:auto!important;height:auto!important}

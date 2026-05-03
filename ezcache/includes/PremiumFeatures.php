@@ -68,51 +68,38 @@ class PremiumFeatures {
     ];
 
     /**
-     * Start the built-in trial (called on plugin activation)
+     * No-op — trial system removed. Pro is unlocked for everyone.
+     * Also cleans up legacy trial option from previous installs.
      */
     public static function maybe_start_trial() {
-        if ( ! get_option( self::TRIAL_OPTION ) ) {
-            update_option( self::TRIAL_OPTION, time() );
+        if ( get_option( self::TRIAL_OPTION ) ) {
+            delete_option( self::TRIAL_OPTION );
         }
     }
 
     /**
-     * Check if built-in trial is active (within 7 days of activation)
+     * Legacy stub — trial system removed. Always returns false.
      * @return bool
      */
     public static function is_builtin_trial() {
-        $trial_started = get_option( self::TRIAL_OPTION );
-        if ( ! $trial_started ) {
-            return false;
-        }
-        $elapsed = time() - (int) $trial_started;
-        return $elapsed < ( self::TRIAL_DAYS * DAY_IN_SECONDS );
+        return false;
     }
 
     /**
-     * Get trial days remaining
+     * Legacy stub — trial system removed. Always returns 0.
      * @return int
      */
     public static function trial_days_remaining() {
-        $trial_started = get_option( self::TRIAL_OPTION );
-        if ( ! $trial_started ) {
-            return 0;
-        }
-        $remaining = ( self::TRIAL_DAYS * DAY_IN_SECONDS ) - ( time() - (int) $trial_started );
-        return max( 0, (int) ceil( $remaining / DAY_IN_SECONDS ) );
+        return 0;
     }
 
     /**
-     * Check if user has premium access (paid, Freemius trial, or built-in trial)
+     * Check if user has premium access.
+     * Licensing system removed — Pro is unlocked for everyone.
      * @return bool
      */
     public static function is_premium() {
-        // Freemius license or trial
-        if ( function_exists( 'ezc_fs' ) && ( ezc_fs()->is_paying() || ezc_fs()->is_trial() ) ) {
-            return true;
-        }
-        // Built-in 7-day trial
-        return self::is_builtin_trial();
+        return true;
     }
 
     /**
@@ -145,30 +132,11 @@ class PremiumFeatures {
     }
 
     /**
-     * Filter settings to disable premium features for free users
+     * No-op — Pro is unlocked for everyone, so settings pass through unchanged.
      * @param object $settings
      * @return object
      */
     public static function enforce_settings( $settings ) {
-        if ( self::is_premium() ) {
-            return $settings;
-        }
-
-        foreach ( self::$premium_features as $feature ) {
-            if ( isset( $settings->{$feature} ) ) {
-                if ( is_bool( $settings->{$feature} ) ) {
-                    $settings->{$feature} = false;
-                } elseif ( is_string( $settings->{$feature} ) ) {
-                    $settings->{$feature} = '';
-                }
-            }
-        }
-
-        // Special: force db_cleanup_schedule to never
-        if ( isset( $settings->db_cleanup_schedule ) ) {
-            $settings->db_cleanup_schedule = 'never';
-        }
-
         return $settings;
     }
 }

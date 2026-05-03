@@ -1,9 +1,9 @@
 === ezCache ===
-Contributors: upress, freemius
+Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.2.0
+Stable tag: 2.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,12 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.5 =
+* All Pro features unlocked for everyone — no licensing layer
+* Removed Freemius SDK and built-in trial system
+* Cleaned up trial / upgrade banners and admin notices
+* Bumped UI font sizes for readability
 
 = 2.2.0 =
 * New: Redis Object Cache — store WordPress object cache in Redis

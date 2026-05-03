@@ -84,7 +84,7 @@ class SettingsController {
 		$site_url = home_url();
 
 		// Call Go diagnostic API
-		$response = wp_remote_post( 'http://localhost:7150/analyze', [
+		$response = wp_remote_post( 'https://api.ezcache-wp.com/analyze', [
 			'headers' => [ 'Content-Type' => 'application/json' ],
 			'body'    => json_encode( [ 'url' => $site_url ] ),
 			'timeout' => 20,

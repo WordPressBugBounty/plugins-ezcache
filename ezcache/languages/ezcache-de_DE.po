@@ -1,0 +1,814 @@
+# German translation for ezCache
+# Copyright (C) 2026 uPress
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: ezCache 2.2.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/ezcache\n"
+"Last-Translator: ezCache Team <support@ezcache-wp.com>\n"
+"Language-Team: German <de@li.org>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-04-20T07:37:43+03:00\n"
+"PO-Revision-Date: 2026-04-20 07:41+0300\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: ezcache\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "ezCache"
+msgstr "ezCache"
+
+msgid "https://ezcache-wp.com"
+msgstr "https://ezcache-wp.com"
+
+msgid "🚀 ezCache 2026 — Lightning-fast WordPress caching with CSS/JS optimization, WebP images, preloading, database cleanup &amp; more. Free &amp; Pro."
+msgstr "🚀 ezCache 2026 — Blitzschnelles WordPress-Caching mit CSS/JS-Optimierung, WebP-Bildern, Vorladen, Datenbankbereinigung und mehr. Kostenlos und Pro."
+
+msgid "uPress"
+msgstr "uPress"
+
+msgid "https://www.upress.io"
+msgstr "https://www.upress.io"
+
+msgid "Every 10 Minutes"
+msgstr "Alle 10 Minuten"
+
+msgid "Hourly"
+msgstr "Stündlich"
+
+msgid "Every 3 Hours"
+msgstr "Alle 3 Stunden"
+
+msgid "Every 6 Hours"
+msgstr "Alle 6 Stunden"
+
+msgid "Every 12 Hours"
+msgstr "Alle 12 Stunden"
+
+msgid "Daily"
+msgstr "Täglich"
+
+msgid "Every 3 Days"
+msgstr "Alle 3 Tage"
+
+msgid "Every 5 Days"
+msgstr "Alle 5 Tage"
+
+msgid "Every 7 Days"
+msgstr "Alle 7 Tage"
+
+msgid "Caching"
+msgstr "Caching"
+
+msgid "Do not cache this page"
+msgstr "Diese Seite nicht cachen"
+
+msgid "Do not cache this post"
+msgstr "Diesen Beitrag nicht cachen"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Clear Cache"
+msgstr "Cache leeren"
+
+msgid "Statistics"
+msgstr "Statistiken"
+
+msgid "Advanced Settings"
+msgstr "Erweiterte Einstellungen"
+
+msgid "License"
+msgstr "Lizenz"
+
+msgid "This application requires JavaScript to run"
+msgstr "Diese Anwendung benötigt JavaScript"
+
+msgid "Select All"
+msgstr "Alle auswählen"
+
+msgid "Select None"
+msgstr "Keine auswählen"
+
+msgid "Enabled"
+msgstr "Aktiviert"
+
+msgid "Disabled"
+msgstr "Deaktiviert"
+
+msgid "Run a Speed Test"
+msgstr "Geschwindigkeitstest durchführen"
+
+msgid "Save Settings"
+msgstr "Einstellungen speichern"
+
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+msgid "Reset Settings"
+msgstr "Einstellungen zurücksetzen"
+
+msgid "Are you sure you want to reset the settings to their default values?"
+msgstr "Bist du sicher, dass du die Einstellungen auf ihre Standardwerte zurücksetzen möchtest?"
+
+msgid "Settings updated."
+msgstr "Einstellungen aktualisiert."
+
+msgid "Could not save settings."
+msgstr "Einstellungen konnten nicht gespeichert werden."
+
+msgid "Cache has been cleared."
+msgstr "Der Cache wurde geleert."
+
+msgid "Documentation"
+msgstr "Dokumentation"
+
+msgid "Knowledgebase"
+msgstr "Wissensdatenbank"
+
+msgid "Performance"
+msgstr "Leistung"
+
+msgid "Cache Preload"
+msgstr "Cache-Vorladen"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Processed"
+msgstr "Verarbeitet"
+
+msgid "remaining"
+msgstr "verbleibend"
+
+msgid "Run Preload Now"
+msgstr "Vorladen jetzt starten"
+
+msgid "Stop Preload"
+msgstr "Vorladen stoppen"
+
+msgid "Preload Settings"
+msgstr "Vorlade-Einstellungen"
+
+msgid "Enable Preload"
+msgstr "Vorladen aktivieren"
+
+msgid "Activate the cache preloader. Pages will be crawled in the background to keep the cache warm."
+msgstr "Den Cache-Vorlader aktivieren. Seiten werden im Hintergrund gecrawlt, um den Cache warm zu halten."
+
+msgid "Preload after cache clear"
+msgstr "Vorladen nach Cache-Leerung"
+
+msgid "Crawl homepage links"
+msgstr "Links der Startseite crawlen"
+
+msgid "Sitemap URL (optional)"
+msgstr "Sitemap-URL (optional)"
+
+msgid "Leave blank to auto-detect /wp-sitemap.xml, /sitemap_index.xml or /sitemap.xml."
+msgstr "Leer lassen, um /wp-sitemap.xml, /sitemap_index.xml oder /sitemap.xml automatisch zu erkennen."
+
+msgid "URLs per batch"
+msgstr "URLs pro Batch"
+
+msgid "Front-end Optimizations"
+msgstr "Frontend-Optimierungen"
+
+msgid "Lazy load images"
+msgstr "Bilder verzögert laden"
+
+msgid "Lazy load iframes"
+msgstr "Iframes verzögert laden"
+
+msgid "Defer JavaScript"
+msgstr "JavaScript zurückstellen"
+
+msgid "Adds defer to local script tags to reduce render-blocking JS."
+msgstr "Fügt defer zu lokalen Script-Tags hinzu, um render-blockierendes JS zu reduzieren."
+
+msgid "Defer JS exclusions"
+msgstr "JS-Zurückstellungs-Ausnahmen"
+
+msgid "One match per line. URLs containing any of these strings will not be deferred."
+msgstr "Eine Übereinstimmung pro Zeile. URLs, die eine dieser Zeichenfolgen enthalten, werden nicht zurückgestellt."
+
+msgid "Remove query strings from static assets"
+msgstr "Query-Strings von statischen Ressourcen entfernen"
+
+msgid "DNS prefetch hosts"
+msgstr "DNS-Prefetch-Hosts"
+
+msgid "Preconnect hosts"
+msgstr "Preconnect-Hosts"
+
+msgid "Heartbeat Control"
+msgstr "Heartbeat-Steuerung"
+
+msgid "Enable heartbeat control"
+msgstr "Heartbeat-Steuerung aktivieren"
+
+msgid "Mode"
+msgstr "Modus"
+
+msgid "Reduce activity (60s ticks)"
+msgstr "Aktivität reduzieren (60s-Intervalle)"
+
+msgid "Disable completely"
+msgstr "Vollständig deaktivieren"
+
+msgid "CDN"
+msgstr "CDN"
+
+msgid "Enable CDN rewriting"
+msgstr "CDN-Umschreibung aktivieren"
+
+msgid "CDN URL"
+msgstr "CDN-URL"
+
+msgid "Static assets under /wp-content/uploads, /themes and /plugins will be rewritten to this host."
+msgstr "Statische Ressourcen unter /wp-content/uploads, /themes und /plugins werden auf diesen Host umgeschrieben."
+
+msgid "Database Cleanup"
+msgstr "Datenbankbereinigung"
+
+msgid "Delete post revisions"
+msgstr "Beitragsrevisionen löschen"
+
+msgid "Delete auto drafts"
+msgstr "Automatische Entwürfe löschen"
+
+msgid "Delete trashed posts"
+msgstr "Beiträge im Papierkorb löschen"
+
+msgid "Delete spam comments"
+msgstr "Spam-Kommentare löschen"
+
+msgid "Delete trashed comments"
+msgstr "Kommentare im Papierkorb löschen"
+
+msgid "Delete expired transients"
+msgstr "Abgelaufene Transients löschen"
+
+msgid "Delete orphan post meta"
+msgstr "Verwaiste Beitrags-Meta löschen"
+
+msgid "Run OPTIMIZE TABLE on all tables"
+msgstr "OPTIMIZE TABLE auf allen Tabellen ausführen"
+
+msgid "Automatic cleanup schedule"
+msgstr "Automatischer Bereinigungsplan"
+
+msgid "Never (manual only)"
+msgstr "Nie (nur manuell)"
+
+msgid "Run Cleanup Now"
+msgstr "Bereinigung jetzt ausführen"
+
+msgid "Preload started in the background."
+msgstr "Vorladen wurde im Hintergrund gestartet."
+
+msgid "Preload cancelled."
+msgstr "Vorladen abgebrochen."
+
+msgid "Database cleanup completed."
+msgstr "Datenbankbereinigung abgeschlossen."
+
+msgid "Saving"
+msgstr "Wird gespeichert"
+
+msgid "An error occurred"
+msgstr "Ein Fehler ist aufgetreten"
+
+msgid "Recommended"
+msgstr "Empfohlen"
+
+msgid "Basic Settings"
+msgstr "Grundeinstellungen"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Delete"
+msgstr "Löschen"
+
+msgid "Don't cache pages for known users"
+msgstr "Seiten für bekannte Benutzer nicht cachen"
+
+msgid "This disables cache for logged in users."
+msgstr "Dies deaktiviert den Cache für angemeldete Benutzer."
+
+msgid "The admin bar will be hidden for all users to prevent it being saved into the cache."
+msgstr "Die Admin-Leiste wird für alle Benutzer ausgeblendet, um zu verhindern, dass sie im Cache gespeichert wird."
+
+msgid "Don't cache pages for comment authors"
+msgstr "Seiten für Kommentar-Autoren nicht cachen"
+
+msgid "Do not save cache for users who saved their name and email for the next time they comment."
+msgstr "Keinen Cache für Benutzer speichern, die ihren Namen und ihre E-Mail für ihren nächsten Kommentar gespeichert haben."
+
+msgid "Cache Expiry"
+msgstr "Cache-Ablauf"
+
+msgid "Cache Timeout"
+msgstr "Cache-Zeitlimit"
+
+msgid "How long to keep the cached data, the recommended and effective starting point is one day."
+msgstr "Wie lange die zwischengespeicherten Daten aufbewahrt werden sollen. Der empfohlene und effektive Ausgangspunkt ist ein Tag."
+
+msgid "Check for stale cache every"
+msgstr "Veralteten Cache prüfen alle"
+
+msgid "Automatically check for stale cache files and delete them at a set interval."
+msgstr "Automatisch veraltete Cache-Dateien prüfen und in einem festgelegten Intervall löschen."
+
+msgid "Interval"
+msgstr "Intervall"
+
+msgid "Every"
+msgstr "Alle"
+
+msgid "Seconds"
+msgstr "Sekunden"
+
+msgid "At Time"
+msgstr "Zur Uhrzeit"
+
+msgid "Weekly"
+msgstr "Wöchentlich"
+
+msgid "Twice Daily"
+msgstr "Zweimal täglich"
+
+msgid "At"
+msgstr "Um"
+
+msgid "Cache Bypass"
+msgstr "Cache-Umgehung"
+
+msgid "Don't cache pages where the URLs contain parameters in the query string"
+msgstr "Seiten nicht cachen, deren URLs Parameter im Query-String enthalten"
+
+msgid "Don't save cache when the URL contains query string parameters, such as ?page_id=15 at the end of the URL."
+msgstr "Keinen Cache speichern, wenn die URL Query-String-Parameter enthält, wie z.B. ?page_id=15 am Ende der URL."
+
+msgid "Separate cache for mobile devices"
+msgstr "Separater Cache für Mobilgeräte"
+
+msgid "Save separate cache files for mobile browsers and a separate file for desktop browsers, you should only enable this option if your theme is not responsive and you use a theme or a plugin that produces a separate mobile version of the website."
+msgstr "Separate Cache-Dateien für mobile Browser und Desktop-Browser speichern. Diese Option sollte nur aktiviert werden, wenn dein Theme nicht responsiv ist und du ein Theme oder Plugin verwendest, das eine separate mobile Version der Website erstellt."
+
+msgid "Clear cache when a post or page is published or updated"
+msgstr "Cache leeren, wenn ein Beitrag oder eine Seite veröffentlicht oder aktualisiert wird"
+
+msgid "Keep your posts up to date even when they are updated by clearing their cache."
+msgstr "Halte deine Beiträge aktuell, indem ihr Cache beim Aktualisieren geleert wird."
+
+msgid "Clear homepage cache when a post or page is published or updated"
+msgstr "Startseiten-Cache leeren, wenn ein Beitrag oder eine Seite veröffentlicht oder aktualisiert wird"
+
+msgid "Make sure your visitors read the latest posts by clearing the cache when you update or publish a post."
+msgstr "Stelle sicher, dass deine Besucher die neuesten Beiträge lesen, indem der Cache beim Aktualisieren oder Veröffentlichen eines Beitrags geleert wird."
+
+msgid "Disable caching for the following pages"
+msgstr "Caching für die folgenden Seiten deaktivieren"
+
+msgid "Single Posts"
+msgstr "Einzelne Beiträge"
+
+msgid "Pages"
+msgstr "Seiten"
+
+msgid "Front Page"
+msgstr "Startseite"
+
+msgid "Home"
+msgstr "Startseite"
+
+msgid "Archives"
+msgstr "Archive"
+
+msgid "Tags"
+msgstr "Schlagwörter"
+
+msgid "Categories"
+msgstr "Kategorien"
+
+msgid "Feeds"
+msgstr "Feeds"
+
+msgid "Search Results"
+msgstr "Suchergebnisse"
+
+msgid "Author Pages"
+msgstr "Autorenseiten"
+
+msgid "Links (URLs) which will never get cached"
+msgstr "Links (URLs), die niemals gecacht werden"
+
+msgid "Do not serve cached content if the URL matches any link in the following list"
+msgstr "Keinen gecachten Inhalt ausliefern, wenn die URL mit einem Link in der folgenden Liste übereinstimmt"
+
+msgid "The domain part of the URL will be stripped automatically. Use * wildcard character to match multiple characters at this position (eg. /product/*)."
+msgstr "Der Domain-Teil der URL wird automatisch entfernt. Verwende das Platzhalterzeichen *, um an dieser Position mehrere Zeichen abzugleichen (z.B. /product/*)."
+
+msgid "User Agents which will never receive cached data"
+msgstr "User-Agents, die niemals gecachte Daten erhalten"
+
+msgid "Do not serve cached content to the following useragents"
+msgstr "Keinen gecachten Inhalt an die folgenden User-Agents ausliefern"
+
+msgid "Cookies which will prevent pages from getting cached"
+msgstr "Cookies, die das Caching von Seiten verhindern"
+
+msgid "Specify the cookies that when set in the visitor's browser, should prevent a page from getting cached (one per line)"
+msgstr "Gib die Cookies an, die, wenn sie im Browser des Besuchers gesetzt sind, das Caching einer Seite verhindern sollen (eines pro Zeile)"
+
+msgctxt "rejected cookies example"
+msgid "wordpress_logged_in_"
+msgstr "wordpress_logged_in_"
+
+#, php-format
+msgid "%s Minutes"
+msgstr "%s Minuten"
+
+#, php-format
+msgid "%s Hours"
+msgstr "%s Stunden"
+
+#, php-format
+msgid "%s Days"
+msgstr "%s Tage"
+
+msgid "Never Expire"
+msgstr "Nie ablaufen"
+
+msgid "WP_CACHE is disabled in your wp-config.php, caching will not work."
+msgstr "WP_CACHE ist in deiner wp-config.php deaktiviert, Caching wird nicht funktionieren."
+
+msgid "advanced-cache.php is missing from your wp-content folder, caching will not work."
+msgstr "advanced-cache.php fehlt in deinem wp-content-Ordner, Caching wird nicht funktionieren."
+
+msgid "Plugin is not installed properly, please reinstall, caching will not work."
+msgstr "Das Plugin ist nicht korrekt installiert, bitte installiere es erneut, Caching wird nicht funktionieren."
+
+msgctxt "statistics block title"
+msgid "Desktop"
+msgstr "Desktop"
+
+msgctxt "statistics block title"
+msgid "Mobile"
+msgstr "Mobil"
+
+msgctxt "statistics block title"
+msgid "Expire Cache"
+msgstr "Abgelaufener Cache"
+
+msgctxt "statistics block title"
+msgid "JavaScript Files"
+msgstr "JavaScript-Dateien"
+
+msgctxt "statistics block title"
+msgid "CSS Files"
+msgstr "CSS-Dateien"
+
+msgctxt "statistics block title"
+msgid "WebP Images"
+msgstr "WebP-Bilder"
+
+msgid "ezCache Cache Usage"
+msgstr "ezCache Cache-Nutzung"
+
+msgid "Images optimized with WebP."
+msgstr "Mit WebP optimierte Bilder."
+
+msgctxt "settings block title"
+msgid "Cache Bypass"
+msgstr "Cache-Umgehung"
+
+msgctxt "settings block title"
+msgid "Caching"
+msgstr "Caching"
+
+msgctxt "settings block title"
+msgid "Performance"
+msgstr "Leistung"
+
+msgctxt "settings block title"
+msgid "Cache Expiration"
+msgstr "Cache-Ablauf"
+
+msgid "Optimize Google fonts"
+msgstr "Google Fonts optimieren"
+
+msgid "Combine multiple Google Fonts declerations into one."
+msgstr "Mehrere Google-Fonts-Deklarationen zu einer zusammenfassen."
+
+msgid "Minify HTML"
+msgstr "HTML minifizieren"
+
+msgid "Minify the cached HTML to make cached files smaller."
+msgstr "Das gecachte HTML minifizieren, um die Dateigröße zu verringern."
+
+msgid "Minify Inline JavaScript"
+msgstr "Inline-JavaScript minifizieren"
+
+msgid "Include JavaScript embedded in the HTML in the minification process."
+msgstr "Im HTML eingebettetes JavaScript in den Minifizierungsprozess einbeziehen."
+
+msgid "Minify Inline CSS"
+msgstr "Inline-CSS minifizieren"
+
+msgid "Include CSS embedded in the HTML in the minification process."
+msgstr "Im HTML eingebettetes CSS in den Minifizierungsprozess einbeziehen."
+
+msgid "Minify JavaScript"
+msgstr "JavaScript minifizieren"
+
+msgid "Minify JavaScript files to reduce their size."
+msgstr "JavaScript-Dateien minifizieren, um ihre Größe zu reduzieren."
+
+msgid "Remove HTML comments"
+msgstr "HTML-Kommentare entfernen"
+
+msgid "Remove embeded comments from minified HTML."
+msgstr "Eingebettete Kommentare aus dem minifizierten HTML entfernen."
+
+msgid "Combine JavaScript in Head"
+msgstr "JavaScript im Head kombinieren"
+
+msgid "Combine multiple JavaScript files found in the head section of the HTML into one file."
+msgstr "Mehrere JavaScript-Dateien aus dem Head-Bereich des HTML in einer Datei zusammenfassen."
+
+msgid "Combine JavaScript in Body"
+msgstr "JavaScript im Body kombinieren"
+
+msgid "Combine multiple JavaScript files found in the body section of the HTML into one file."
+msgstr "Mehrere JavaScript-Dateien aus dem Body-Bereich des HTML in einer Datei zusammenfassen."
+
+msgid "Combine Inline JavaScript in Head"
+msgstr "Inline-JavaScript im Head kombinieren"
+
+msgid "Combine JavaScript scripts found in the head section of the HTML into the combined JS file."
+msgstr "JavaScript-Scripte aus dem Head-Bereich des HTML in die kombinierte JS-Datei zusammenfassen."
+
+msgid "Combine Inline JavaScript in Body"
+msgstr "Inline-JavaScript im Body kombinieren"
+
+msgid "Combine JavaScript scripts found in the body section of the HTML into the combined JS file."
+msgstr "JavaScript-Scripte aus dem Body-Bereich des HTML in die kombinierte JS-Datei zusammenfassen."
+
+msgid "Elementor generates a unique JS file for each post/page which can cause the cache to use large amounts of disk space, to fix this make sure to exclude Elementor JS files (`elementor/js/post-*`) from optimizations."
+msgstr "Elementor generiert eine einzigartige JS-Datei für jeden Beitrag/jede Seite, was dazu führen kann, dass der Cache viel Speicherplatz belegt. Um dies zu beheben, stelle sicher, dass Elementor-JS-Dateien (`elementor/js/post-*`) von den Optimierungen ausgeschlossen werden."
+
+msgid "Minify CSS"
+msgstr "CSS minifizieren"
+
+msgid "Minify CSS files to reduce their size."
+msgstr "CSS-Dateien minifizieren, um ihre Größe zu reduzieren."
+
+msgid "Combine CSS"
+msgstr "CSS kombinieren"
+
+msgid "Combine multiple CSS files into one to reduce HTTP requests."
+msgstr "Mehrere CSS-Dateien zu einer zusammenfassen, um HTTP-Anfragen zu reduzieren."
+
+msgid "Elementor generates a unique CSS file for each post/page which can cause the cache to use large amounts of disk space, to fix this make sure to exclude Elementor CSS files (`elementor/css/post-*`) from optimizations."
+msgstr "Elementor generiert eine einzigartige CSS-Datei für jeden Beitrag/jede Seite, was dazu führen kann, dass der Cache viel Speicherplatz belegt. Um dies zu beheben, stelle sicher, dass Elementor-CSS-Dateien (`elementor/css/post-*`) von den Optimierungen ausgeschlossen werden."
+
+msgid "Disable WordPress Emoji"
+msgstr "WordPress-Emoji deaktivieren"
+
+msgid "Remove extra code related to Emoji from WordPress which was added recently to support Emoji in an older browsers."
+msgstr "Zusätzlichen WordPress-Code für Emoji entfernen, der hinzugefügt wurde, um Emoji in älteren Browsern zu unterstützen."
+
+msgid "Your server supports HTTP/2 which benefits from having this option kept disabled"
+msgstr "Dein Server unterstützt HTTP/2, das davon profitiert, wenn diese Option deaktiviert bleibt"
+
+msgid "Optimize Images With WebP"
+msgstr "Bilder mit WebP optimieren"
+
+msgid "WebP is a modern image format that provides superior lossless and lossy compression for images on the web. WebP lossless images are 26% smaller in size compared to PNGs, and 25-34% smaller than comparable JPEG images."
+msgstr "WebP ist ein modernes Bildformat, das überlegene verlustfreie und verlustbehaftete Komprimierung für Bilder im Web bietet. Verlustfreie WebP-Bilder sind 26% kleiner als PNGs und 25-34% kleiner als vergleichbare JPEG-Bilder."
+
+msgid "Requires a premium license"
+msgstr "Erfordert eine Premium-Lizenz"
+
+msgctxt "user agent example"
+msgid "Googlebot"
+msgstr "Googlebot"
+
+msgctxt "rejected uri example"
+msgid "/products/*"
+msgstr "/products/*"
+
+msgid "Optimized and cached CSS files."
+msgstr "Optimierte und gecachte CSS-Dateien."
+
+msgid "Optimized and cached JavaScript files."
+msgstr "Optimierte und gecachte JavaScript-Dateien."
+
+msgid "Cache data that has expired and waiting to be cleaned up."
+msgstr "Cache-Daten, die abgelaufen sind und auf Bereinigung warten."
+
+msgid "Cache data for pages viewed from mobile devices."
+msgstr "Cache-Daten für Seiten, die von Mobilgeräten aufgerufen wurden."
+
+msgid "Cache data for pages viewed from desktop computers."
+msgstr "Cache-Daten für Seiten, die von Desktop-Computern aufgerufen wurden."
+
+msgid "General"
+msgstr "Allgemein"
+
+msgid "Move combined CSS to footer"
+msgstr "Kombiniertes CSS in den Footer verschieben"
+
+msgid "Eliminate render blocking CSS by moving the combined CSS file to the footer section."
+msgstr "Render-blockierendes CSS eliminieren, indem die kombinierte CSS-Datei in den Footer-Bereich verschoben wird."
+
+msgid "Critical CSS"
+msgstr "Kritisches CSS"
+
+msgid ""
+"Critical CSS is the minimum set of blocking CSS required to render the first screen's worth of content to the user in order to render content to the user as fast as possible.\n"
+"The Critical CSS can (and should) be manually created to fit the website perfectly, however there are tools that can automatically generate the Critical CSS for you."
+msgstr ""
+"Kritisches CSS ist der minimale Satz an blockierendem CSS, der benötigt wird, um den Inhalt des ersten Bildschirms so schnell wie möglich darzustellen.\n"
+"Das kritische CSS kann (und sollte) manuell erstellt werden, um perfekt zur Website zu passen. Es gibt jedoch Tools, die das kritische CSS automatisch generieren können."
+
+msgid "More information about Critical CSS"
+msgstr "Weitere Informationen über kritisches CSS"
+
+msgid "Online Critical CSS Generator"
+msgstr "Online-Generator für kritisches CSS"
+
+msgid "Moving combined CSS to footer requires the Combine CSS option enabled."
+msgstr "Das Verschieben des kombinierten CSS in den Footer erfordert, dass die Option CSS kombinieren aktiviert ist."
+
+msgid "Exclude JS/CSS files from optimization"
+msgstr "JS/CSS-Dateien von der Optimierung ausschließen"
+
+msgid "List filenames or paths to files which should be excluded from minification or combining."
+msgstr "Liste von Dateinamen oder Pfaden, die von der Minifizierung oder Kombination ausgeschlossen werden sollen."
+
+msgid ""
+"jquery.js\n"
+"recaptcha/api.js\n"
+"googleadservices.com"
+msgstr ""
+"jquery.js\n"
+"recaptcha/api.js\n"
+"googleadservices.com"
+
+msgid "Advanced Tools"
+msgstr "Erweiterte Werkzeuge"
+
+msgid "Clear WebP Images Cache"
+msgstr "WebP-Bilder-Cache leeren"
+
+msgid ""
+"Are you sure that you want to delete all of the cached WebP images?\n"
+"Theses images will have to be converted again which may take some time."
+msgstr ""
+"Bist du sicher, dass du alle gecachten WebP-Bilder löschen möchtest?\n"
+"Diese Bilder müssen erneut konvertiert werden, was einige Zeit dauern kann."
+
+msgid "Error clearing WebP image cache"
+msgstr "Fehler beim Leeren des WebP-Bilder-Caches"
+
+msgid "Scheduled task queued"
+msgstr "Geplante Aufgabe in Warteschlange"
+
+msgid "Error scheduling WebP process"
+msgstr "Fehler beim Planen des WebP-Prozesses"
+
+msgid "Re-Schedule WebP Process Scheduled Task"
+msgstr "WebP-Prozess-Aufgabe neu planen"
+
+msgid "License Key"
+msgstr "Lizenzschlüssel"
+
+msgid "Manage your license through Freemius. Upgrade to Pro for unlimited WebP image optimization."
+msgstr "Verwalte deine Lizenz über Freemius. Upgrade auf Pro für unbegrenzte WebP-Bildoptimierung."
+
+msgid "Account Settings"
+msgstr "Kontoeinstellungen"
+
+msgid "Manage License"
+msgstr "Lizenz verwalten"
+
+msgid "License is valid"
+msgstr "Die Lizenz ist gültig"
+
+msgid "License is invalid"
+msgstr "Die Lizenz ist ungültig"
+
+#, php-format
+msgid "License expires at %s"
+msgstr "Die Lizenz läuft am %s ab"
+
+msgid "Unknown"
+msgstr "Unbekannt"
+
+msgid "License Details"
+msgstr "Lizenzdetails"
+
+msgid "License Type"
+msgstr "Lizenztyp"
+
+msgctxt "license type"
+msgid "Trial"
+msgstr "Testversion"
+
+msgctxt "license type"
+msgid "Pro"
+msgstr "Pro"
+
+msgid "Expires In"
+msgstr "Läuft ab in"
+
+msgid "Expires At"
+msgstr "Läuft ab am"
+
+msgid "Convertions Left"
+msgstr "Verbleibende Konvertierungen"
+
+#, php-format
+msgid "%s days after first usage"
+msgstr "%s Tage nach der ersten Nutzung"
+
+msgid "Get a Pro License"
+msgstr "Pro-Lizenz erwerben"
+
+msgid "Expired"
+msgstr "Abgelaufen"
+
+msgid "Will not expire while hosted on uPress"
+msgstr "Läuft nicht ab, solange es bei uPress gehostet wird"
+
+msgid "uPress Premium WordPress Hosting"
+msgstr "uPress Premium WordPress-Hosting"
+
+msgid "www.upress.io"
+msgstr "www.upress.io"
+
+msgid "https://www.upress.io/?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://www.upress.io/?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+
+#, php-format
+msgid "https://speedom.net/?url=%s&location=US-NY&utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://speedom.net/?url=%s&location=US-NY&utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+
+msgid "https://ezcache-wp.com/documentation?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://ezcache-wp.com/documentation?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+
+msgid "https://ezcache-wp.com/knowledgebase?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://ezcache-wp.com/knowledgebase?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+
+msgid "https://ezcache-wp.com/pricing?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+msgstr "https://ezcache-wp.com/pricing?utm_source=wordpress&utm_medium=cpc&utm_campaign=ezcache"
+
+#, php-format
+msgid "WebP Processing is currently running, %d images remaining."
+msgstr "WebP-Verarbeitung läuft derzeit, %d Bilder verbleibend."
+
+msgid "Settings saved."
+msgstr "Einstellungen gespeichert."
+
+msgid "ezCache Performance"
+msgstr "ezCache Leistung"
+
+msgid "These options expose the new performance modules introduced in ezCache 1.7.0. They are stored in the same configuration file as the rest of the ezCache settings."
+msgstr "Diese Optionen zeigen die neuen Leistungsmodule, die in ezCache 1.7.0 eingeführt wurden. Sie werden in derselben Konfigurationsdatei wie die übrigen ezCache-Einstellungen gespeichert."
+
+msgid "Status:"
+msgstr "Status:"
+
+#, php-format
+msgid "Processed: %1$d / %2$d (%3$d remaining)"
+msgstr "Verarbeitet: %1$d / %2$d (%3$d verbleibend)"
+
+msgid "Save Performance Settings"
+msgstr "Leistungseinstellungen speichern"
+
+msgid "Run Database Cleanup Now"
+msgstr "Datenbankbereinigung jetzt ausführen"
+
+msgid "Runs the cleanup tasks ticked above immediately."
+msgstr "Führt die oben markierten Bereinigungsaufgaben sofort aus."
+
+msgid "Forbidden"
+msgstr "Verboten"
+
+msgid "Please use the Freemius account page to manage your license."
+msgstr "Bitte verwende die Freemius-Kontoseite, um deine Lizenz zu verwalten."
+
+msgid "Every Minute (ezCache Preload)"
+msgstr "Jede Minute (ezCache Vorladen)"
+
+msgid "License management is handled through Freemius. Please use the Account page."
+msgstr "Die Lizenzverwaltung erfolgt über Freemius. Bitte verwende die Kontoseite."

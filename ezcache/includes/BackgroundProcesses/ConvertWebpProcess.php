@@ -143,13 +143,13 @@ class ConvertWebpProcess {
 
 		// only download the file if we don't have it locally
 		if ( ! file_exists( $image->webp_path ) || filesize( $image->webp_path ) <= 2 || stripos( file_get_contents( $image->webp_path ), '"success":false' ) ) {
-			// Premium check via Freemius
+			// Premium gate — Pro is unlocked for everyone, kept as defensive guard.
 			if ( ! PremiumFeatures::is_premium() ) {
 				Logger::log( "ezCache WebP: image {$image_id} skipped, premium required." );
 				return;
 			}
 
-			$license_key = ""; if (function_exists("ezc_fs") && ezc_fs()->_get_license()) { $license_key = ezc_fs()->_get_license()->secret_key; } $converter = new WebpApi( $license_key ?: "freemius_premium" );
+			$converter = new WebpApi( 'unlocked_pro' );
 			$response  = $converter->convert( $image->path );
 
 			if ( is_wp_error( $response ) || stripos( $response['info']['content-type'], 'json' ) || stripos( $response['data'], '"success":false' ) ) {
