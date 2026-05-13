@@ -727,6 +727,27 @@ class Cache {
 			return;
 		}
 
+		// ── Redis Full-Page Cache fast path ────────────────────
+		// When enabled, try Redis first. A hit is sub-millisecond and skips
+		// the disk read entirely. On miss we fall through to the disk path
+		// below (and the response handler in maybe_write_cache_file will
+		// populate Redis for next time).
+		if (
+			! empty( $this->settings->enable_redis_fullpage )
+			&& class_exists( '\\Upress\\EzCache\\RedisObjectCache' )
+		) {
+			$current_url = ( is_ssl() ? 'https://' : 'http://' )
+				. ( $_SERVER['HTTP_HOST'] ?? '' )
+				. ( $_SERVER['REQUEST_URI'] ?? '/' );
+			$cached_html = \Upress\EzCache\RedisObjectCache::get_page( $current_url );
+			if ( false !== $cached_html && '' !== $cached_html ) {
+				header( 'X-Cached-With: ezCache (Redis)' );
+				header( 'Vary: Accept-Encoding, Cookie' );
+				echo $cached_html;
+				exit;
+			}
+		}
+
 		$cache_file    = $this->get_cache_file_path();
 		$gzip_accepted = $this->gzip_accepted();
 
@@ -918,6 +939,20 @@ class Cache {
 
 		$buffer = apply_filters( 'ezcache_before_save_cache', $buffer );
 
+		// ── Redis Full-Page Cache write ───────────────────────
+		// Mirror the cached HTML to Redis when the flag is on. TTL matches
+		// the disk-cache lifetime so both backends expire in sync.
+		if (
+			! empty( $settings->enable_redis_fullpage )
+			&& class_exists( '\\Upress\\EzCache\\RedisObjectCache' )
+		) {
+			$current_url = ( is_ssl() ? 'https://' : 'http://' )
+				. ( $_SERVER['HTTP_HOST'] ?? '' )
+				. ( $_SERVER['REQUEST_URI'] ?? '/' );
+			$ttl = ! empty( $settings->cache_lifetime ) ? (int) $settings->cache_lifetime : 604800;
+			\Upress\EzCache\RedisObjectCache::set_page( $current_url, $buffer, $ttl );
+		}
+
 		if ( ! file_exists( $real_cache_dir ) ) {
 			if ( ! @wp_mkdir_p( $real_cache_dir ) ) {
 				Logger::log( 'ezCache could not create directory ' . $real_cache_dir );
@@ -1037,6 +1072,12 @@ class Cache {
 
 		$this->purge_varnish_cache();
 
+		// Also flush Redis (both object cache and full-page keys live under ezcache:*).
+		// If Redis is disabled or unavailable this is a no-op.
+		if ( class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
+			\Upress\EzCache\RedisObjectCache::flush();
+		}
+
 		$this->preload_homepage();
 
 		/**
@@ -1058,6 +1099,14 @@ class Cache {
 
 		$this->purge_varnish_cache();
 
+		// Remove the matching Redis full-page key so the next request rebuilds.
+		if ( class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
+			$url = get_permalink( $post_id );
+			if ( $url ) {
+				\Upress\EzCache\RedisObjectCache::delete_page( $url );
+			}
+		}
+
 		/**
 		 * Fires after a single post's cache has been cleared.
 		 *
@@ -1072,6 +1121,10 @@ class Cache {
 		$this->rmdir_recursive( $real_cache_dir );
 
 		$this->purge_varnish_cache();
+
+		if ( class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
+			\Upress\EzCache\RedisObjectCache::delete_page( $url );
+		}
 
 		/**
 		 * Fires after a URL's cache has been cleared.

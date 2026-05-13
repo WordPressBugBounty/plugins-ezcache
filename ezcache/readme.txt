@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.5
+Stable tag: 2.5.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -44,11 +44,14 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 
 == Changelog ==
 
-= 2.5 =
-* All Pro features unlocked for everyone — no licensing layer
-* Removed Freemius SDK and built-in trial system
-* Cleaned up trial / upgrade banners and admin notices
-* Bumped UI font sizes for readability
+= 2.5.1 =
+* Fix: Settings now persist correctly — useApi unwraps the {success,data} REST envelope so form values hydrate (previously every setting reverted to defaults on reload).
+* Fix: "Clear Cache" also flushes Redis (object + full-page keys). Single-post / single-URL invalidation removes the matching Redis page key too.
+* Fix: Redis Full-Page Cache actually serves from Redis now — maybe_serve_cached_data checks Redis first; the buffer is mirrored to Redis on write with TTL = cache_lifetime.
+* New: Redis section on the Performance page — connection status, Object Cache + Full-Page toggles, drop-in warning, manual Flush button.
+* New: Redis widget on the Dashboard — Hit Rate / Memory / Cached Keys live stats, Connected/Disconnected badge, Flush button.
+* New: Development Mode UI on the Dashboard — duration picker (1h/2h/4h/8h/24h/Permanent), live "is active" banner with expiry countdown, Disable button.
+* UI: Sidebar nav items use the brand accent colour by default for better contrast on the dark theme.
 
 = 2.2.0 =
 * New: Redis Object Cache — store WordPress object cache in Redis

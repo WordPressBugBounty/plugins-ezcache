@@ -140,7 +140,7 @@ class SettingsController {
 		$backup = [
 			'name'       => $name,
 			'created_at' => date( 'Y-m-d H:i:s' ),
-			'version'    => defined( 'EZCACHE_VERSION' ) ? EZCACHE_VERSION : '2.1.0',
+			'version'    => defined( 'EZCACHE_VERSION' ) ? EZCACHE_VERSION : '2.5.1',
 			'site_url'   => home_url(),
 			'settings'   => $settings,
 		];

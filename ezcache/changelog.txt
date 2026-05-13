@@ -1,3 +1,12 @@
+= 2.5.1 =
+- Fix: settings now persist correctly (useApi REST envelope unwrap)
+- Fix: Clear Cache flushes Redis too; single-post/url clears the matching Redis page key
+- Fix: Redis Full-Page Cache actually serves from Redis (was inert before)
+- New: Redis section on Performance page (status, toggles, flush)
+- New: Redis widget on Dashboard (hit rate / memory / keys / flush)
+- New: Development Mode UI on Dashboard (duration picker + live banner)
+- UI: sidebar nav items in accent colour for better dark-theme contrast
+
 = 1.7.0 =
 - New: Cache Preload module (sitemap parser + queued background processor + homepage crawler), inspired by WP Rocket
 - New: Lazy load for images and iframes
