@@ -7,20 +7,62 @@ use Upress\EzCache\PremiumFeatures;
 
 class SettingsController {
 
+	/**
+	 * Allowed settings keys (whitelist)
+	 */
+	private static $allowed_keys = [
+		// Core cache settings
+		'no_cache_known_users', 'no_cache_comment_authors', 'separate_mobile_cache',
+		'cache_lifetime', 'cache_expiry_interval',
+		// Optimization
+		'disable_wp_emoji', 'optimize_google_fonts',
+		'minify_html', 'minify_html_comments', 'minify_inline_js', 'minify_inline_css',
+		'minify_js', 'combine_head_js', 'combine_body_js', 'combine_head_inline_js',
+		'combine_body_inline_js', 'minify_css', 'combine_css', 'combine_css_footer',
+		'critical_css', 'enable_webp_support',
+		// Cache behavior
+		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
+		'bypass_cache', 'rejected_uri', 'rejected_user_agent', 'rejected_cookies',
+		'excluded_minify_files',
+	];
+
+	/**
+	 * Boolean settings keys
+	 */
+	private static $boolean_keys = [
+		'no_cache_known_users', 'no_cache_comment_authors', 'separate_mobile_cache',
+		'disable_wp_emoji', 'optimize_google_fonts',
+		'minify_html', 'minify_html_comments', 'minify_inline_js', 'minify_inline_css',
+		'minify_js', 'combine_head_js', 'combine_body_js', 'combine_head_inline_js',
+		'combine_body_inline_js', 'minify_css', 'combine_css', 'combine_css_footer',
+		'enable_webp_support',
+		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
+	];
+
+	/**
+	 * Integer settings keys with [min, max] ranges
+	 */
+	private static $integer_keys = [
+		'cache_lifetime'       => [ 0, 31536000 ],
+		'cache_expiry_interval' => [ 60, 86400 ],
+	];
+
 	function show() {
 		$settings = Settings::get_settings();
 
-		return [
-			'success' => true,
-			'data'    => $settings,
-		];
+		return wp_send_json_success( $settings );
 	}
 
 	function update( $request ) {
 		$json             = $request->get_json_params();
 		$updated_settings = [];
+
 		foreach ( $json as $key => $value ) {
-			$updated_settings[ $key ] = $value;
+			// Only allow known settings keys
+			if ( ! in_array( $key, self::$allowed_keys, true ) ) {
+				continue;
+			}
+			$updated_settings[ $key ] = self::sanitize_setting( $key, $value );
 		}
 
 		// Strip premium features for free users
@@ -33,27 +75,21 @@ class SettingsController {
 
 		Settings::set_settings( $updated_settings );
 
-		return [
-			'success' => true,
-			'data'    => Settings::get_settings(),
-		];
+		return wp_send_json_success( Settings::get_settings() );
 	}
 
 	function destroy() {
 		$default_settings = (array) Settings::get_default_settings();
 		Settings::set_settings( $default_settings );
 
-		return [
-			'success' => true,
-			'data'    => Settings::get_settings(),
-		];
+		return wp_send_json_success( Settings::get_settings() );
 	}
 
 	// ── Dev Mode ──────────────────────────────────────────
 
 	function devModeStatus() {
 		$status = \Upress\EzCache\Cache::get_dev_mode_status();
-		return [ 'success' => true, 'data' => $status ];
+		return wp_send_json_success( $status );
 	}
 
 	function enableDevMode( $request ) {
@@ -64,18 +100,12 @@ class SettingsController {
 			$seconds = max( (int) $duration, 3600 );
 		}
 		\Upress\EzCache\Cache::enable_dev_mode( $seconds );
-		return [
-			'success' => true,
-			'data' => [ 'active' => true, 'message' => 'Development mode enabled' ],
-		];
+		return wp_send_json_success( [ 'active' => true, 'message' => 'Development mode enabled' ] );
 	}
 
 	function disableDevMode() {
 		\Upress\EzCache\Cache::disable_dev_mode();
-		return [
-			'success' => true,
-			'data' => [ 'active' => false, 'message' => 'Development mode disabled' ],
-		];
+		return wp_send_json_success( [ 'active' => false, 'message' => 'Development mode disabled' ] );
 	}
 
 	// ── Diagnostics ──────────────────────────────────────
@@ -95,7 +125,7 @@ class SettingsController {
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		return [ 'success' => true, 'data' => $data ];
+		return wp_send_json_success( $data );
 	}
 
 	// ── Settings Backup/Restore ──────────────────────────
@@ -127,7 +157,7 @@ class SettingsController {
 
 		usort( $backups, function( $a, $b ) { return strcmp( $b['created_at'], $a['created_at'] ); } );
 
-		return [ 'success' => true, 'data' => $backups ];
+		return wp_send_json_success( $backups );
 	}
 
 	function createBackup( $request ) {
@@ -149,13 +179,10 @@ class SettingsController {
 		$filename = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) . '-' . date( 'Ymd-His' ) . '.json';
 		file_put_contents( $dir . '/' . $filename, json_encode( $backup, JSON_PRETTY_PRINT ) );
 
-		return [
-			'success' => true,
-			'data'    => [
-				'filename' => $filename,
-				'message'  => 'Backup created: ' . $name,
-			],
-		];
+		return wp_send_json_success( [
+			'filename' => $filename,
+			'message'  => 'Backup created: ' . $name,
+		] );
 	}
 
 	function restoreBackup( $request ) {
@@ -182,12 +209,42 @@ class SettingsController {
 
 		\Upress\EzCache\Settings::set_settings( (array) $backup['settings'] );
 
-		return [
-			'success' => true,
-			'data'    => [
-				'message'  => 'Settings restored from: ' . ( $backup['name'] ?? $filename ),
-				'settings' => \Upress\EzCache\Settings::get_settings(),
-			],
-		];
+		return wp_send_json_success( [
+			'message'  => 'Settings restored from: ' . ( $backup['name'] ?? $filename ),
+			'settings' => \Upress\EzCache\Settings::get_settings(),
+		] );
+	}
+
+	/**
+	 * Sanitize a single setting value based on its key
+	 */
+	private static function sanitize_setting( $key, $value ) {
+		// Boolean fields
+		if ( in_array( $key, self::$boolean_keys, true ) ) {
+			return (bool) $value;
+		}
+
+		// Integer fields with range
+		if ( isset( self::$integer_keys[ $key ] ) ) {
+			[ $min, $max ] = self::$integer_keys[ $key ];
+			return max( $min, min( $max, (int) $value ) );
+		}
+
+		// bypass_cache is an associative array of booleans
+		if ( $key === 'bypass_cache' && is_array( $value ) ) {
+			$allowed_bypass = [ 'single', 'pages', 'frontpage', 'home', 'archives', 'tag', 'category', 'feed', 'search', 'author' ];
+			$sanitized = [];
+			foreach ( $allowed_bypass as $bypass_key ) {
+				$sanitized[ $bypass_key ] = isset( $value[ $bypass_key ] ) ? (bool) $value[ $bypass_key ] : false;
+			}
+			return $sanitized;
+		}
+
+		// Text/textarea fields
+		if ( is_string( $value ) ) {
+			return sanitize_textarea_field( $value );
+		}
+
+		return $value;
 	}
 }

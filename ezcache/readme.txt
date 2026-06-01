@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.5.1
+Stable tag: 2.5.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,15 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.5.2 =
+* Fix: Performance settings (lazy load, defer JS, etc.) no longer reset after save — API response flattened to match frontend expectations.
+* Fix: Dashboard now displays cache statistics correctly — restructured stats API to nested format.
+* Fix: Added missing boolean sanitization for 5 new fields (Redis, Critical CSS, Speculative Loading, Early Hints).
+* Fix: SettingsController now uses wp_send_json_success() consistently with all other controllers.
+* Security: Added input validation and whitelist sanitization to SettingsController::update().
+* Fix: Settings file write errors are now caught and logged instead of failing silently.
+* Fix: Added select validation for speculative_mode field.
 
 = 2.5.1 =
 * Fix: Settings now persist correctly — useApi unwraps the {success,data} REST envelope so form values hydrate (previously every setting reverted to defaults on reload).

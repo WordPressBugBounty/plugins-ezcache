@@ -147,7 +147,15 @@ class Settings {
 
         self::maybe_update_cronjobs( $settings );
 
-        file_put_contents( self::settings_file_path(), json_encode( $settings ) );
+        $file_path = self::settings_file_path();
+        $json      = json_encode( $settings );
+        $written   = file_put_contents( $file_path, $json );
+
+        if ( $written === false ) {
+            error_log( '[EzCache] Failed to write settings to ' . $file_path );
+            return new \WP_Error( 'ezcache_settings_write_failed', 'Failed to save settings file. Check file permissions.', [ 'status' => 500 ] );
+        }
+
 		self::$settings = $settings;
 
 		// Refresh schedules for the new modules.

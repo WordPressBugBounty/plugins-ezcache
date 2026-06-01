@@ -1,3 +1,12 @@
+= 2.5.2 =
+- Fix: Performance settings (lazy load, defer JS, etc.) no longer reset after save
+- Fix: Dashboard now displays cache statistics correctly
+- Fix: Added missing boolean sanitization for 5 new fields
+- Fix: SettingsController uses wp_send_json_success() consistently
+- Security: Added input validation and whitelist sanitization to SettingsController
+- Fix: Settings file write errors are now caught and logged
+- Fix: Added select validation for speculative_mode field
+
 = 2.5.1 =
 - Fix: settings now persist correctly (useApi REST envelope unwrap)
 - Fix: Clear Cache flushes Redis too; single-post/url clears the matching Redis page key

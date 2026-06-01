@@ -14,7 +14,39 @@ class CacheController {
 			return wp_send_json_error( [ 'error' => $ex->getMessage() ] );
 		}
 
-		return wp_send_json_success( $stats );
+		// Restructure flat stats into nested format expected by Vue frontend
+		$structured_stats = [
+			'desktop' => [
+				'count' => $stats['desktop_count'] ?? 0,
+				'size'  => $stats['desktop_size'] ?? 0,
+			],
+			'mobile' => [
+				'count' => $stats['mobile_count'] ?? 0,
+				'size'  => $stats['mobile_size'] ?? 0,
+			],
+			'expired' => [
+				'count' => ( $stats['desktop_expired_count'] ?? 0 ) + ( $stats['mobile_expired_count'] ?? 0 ),
+				'size'  => ( $stats['desktop_expired_size'] ?? 0 ) + ( $stats['mobile_expired_size'] ?? 0 ),
+			],
+			'js' => [
+				'count' => $stats['js_count'] ?? 0,
+				'size'  => $stats['js_size'] ?? 0,
+			],
+			'css' => [
+				'count' => $stats['css_count'] ?? 0,
+				'size'  => $stats['css_size'] ?? 0,
+			],
+			'webp' => [
+				'count'         => $stats['webp_images'] ?? 0,
+				'size'          => $stats['webp_size'] ?? 0,
+				'original_size' => $stats['webp_original_size'] ?? 0,
+			],
+		];
+
+		return wp_send_json_success( [
+			'stats'   => $structured_stats,
+			'notices' => [],
+		] );
 	}
 
 	/**

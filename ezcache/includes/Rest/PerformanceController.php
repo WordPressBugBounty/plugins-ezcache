@@ -86,10 +86,9 @@ class PerformanceController {
 			$preload_status = Preload::instance()->get_status();
 		}
 
-		return wp_send_json_success( [
-			'settings'       => $settings,
+		return wp_send_json_success( array_merge( $settings, [
 			'preload_status' => $preload_status,
-		] );
+		] ) );
 	}
 
 	/**
@@ -157,6 +156,9 @@ class PerformanceController {
 			'db_cleanup_revisions', 'db_cleanup_auto_drafts', 'db_cleanup_trashed_posts',
 			'db_cleanup_spam_comments', 'db_cleanup_trashed_comments', 
 			'db_cleanup_expired_transients', 'db_cleanup_orphan_postmeta', 'db_optimize_tables',
+			// v2.2.0
+			'enable_redis_object_cache', 'enable_redis_fullpage', 'enable_critical_css',
+			'enable_speculative_loading', 'enable_early_hints',
 		];
 
 		if ( in_array( $key, $booleans, true ) ) {
@@ -175,6 +177,10 @@ class PerformanceController {
 
 		if ( $key === 'db_cleanup_schedule' ) {
 			return in_array( $value, [ 'never', 'daily', 'weekly' ], true ) ? $value : 'never';
+		}
+
+		if ( $key === 'speculative_mode' ) {
+			return in_array( $value, [ 'conservative', 'moderate', 'eager' ], true ) ? $value : 'moderate';
 		}
 
 		// Text fields
