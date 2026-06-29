@@ -85,6 +85,16 @@
               <span class="ezc-switch__track"></span>
             </label>
           </div>
+          <div class="ezc-toggle">
+            <div class="ezc-toggle__info">
+              <div class="ezc-toggle__label">{{ t('enable_varnish_purge') }}</div>
+              <div class="ezc-toggle__desc">{{ t('enable_varnish_purge_description') }}</div>
+            </div>
+            <label class="ezc-switch">
+              <input type="checkbox" v-model="form.enable_varnish_purge">
+              <span class="ezc-switch__track"></span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -417,6 +427,7 @@ const form = ref({
   no_cache_query_params: false,
   cache_clear_on_post_edit: true,
   cache_clear_home_on_post_edit: true,
+  enable_varnish_purge: true,
   cache_lifetime: 604800,
   cache_expiry_interval: 10800,
   minify_html: false,

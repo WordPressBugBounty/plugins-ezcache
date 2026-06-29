@@ -1135,6 +1135,22 @@ class Cache {
 	}
 
 	public function purge_varnish_cache() {
+		// Whether Varnish PURGE is enabled (on by default). Can be turned off from
+		// the settings screen on servers where Varnish is not in the request path,
+		// to avoid generating needless 403 noise in the logs.
+		$enabled = ! isset( $this->settings->enable_varnish_purge ) || ! empty( $this->settings->enable_varnish_purge );
+
+		/**
+		 * Filters whether ezCache should send a PURGE request to Varnish.
+		 *
+		 * Return false to skip the PURGE entirely.
+		 *
+		 * @param bool $enabled Whether the PURGE request should be sent.
+		 */
+		if ( ! apply_filters( 'ezcache_should_purge_varnish', $enabled ) ) {
+			return;
+		}
+
 		$desktop_ua = apply_filters(
 			'ezcache_desktop_useragent',
 			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36 (ezCache Preload)'
@@ -1149,6 +1165,14 @@ class Cache {
 
 		$host = $parseUrl['host'];
 
+		// Send the PURGE to the local Varnish instance over loopback rather than to
+		// the public host. The public hostname is preserved in the Host header so
+		// Varnish still matches the right cache objects, while the request originates
+		// from 127.0.0.1 — which is what Varnish/nginx PURGE ACLs typically allow,
+		// avoiding the public 403 errors seen when the request leaves and re-enters
+		// the server via its public IP.
+		$purge_host = apply_filters( 'ezcache_varnish_purge_host', '127.0.0.1' );
+
 		$request_args = [
 			'method'    => 'PURGE',
 			'headers'   => [
@@ -1157,14 +1181,14 @@ class Cache {
 			],
 			'sslverify' => false,
 		];
-		$response = wp_remote_request( $schema . $host . '/.*', $request_args );
+		$response = wp_remote_request( $schema . $purge_host . '/.*', $request_args );
 		if ( is_wp_error( $response ) || $response['response']['code'] != '200' ) {
 			if ( $schema === 'https://' ) {
 				$schema = 'http://';
 			} else {
 				$schema = 'https://';
 			}
-			wp_remote_request( $schema . $host . '/.*', $request_args );
+			wp_remote_request( $schema . $purge_host . '/.*', $request_args );
 		}
 	}
 

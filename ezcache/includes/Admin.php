@@ -590,6 +590,8 @@ class Admin {
 			'cache_clear_on_post_edit_description'      => __( 'Keep your posts up to date even when they are updated by clearing their cache.', 'ezcache' ),
 			'cache_clear_home_on_post_edit'             => __( 'Clear homepage cache when a post or page is published or updated', 'ezcache' ),
 			'cache_clear_home_on_post_edit_description' => __( 'Make sure your visitors read the latest posts by clearing the cache when you update or publish a post.', 'ezcache' ),
+			'enable_varnish_purge'                      => __( 'Send PURGE requests to Varnish on cache clear', 'ezcache' ),
+			'enable_varnish_purge_description'          => __( 'When enabled, ezCache sends a PURGE request to the local Varnish instance (127.0.0.1) whenever the cache is cleared. Disable this if Varnish is not in your site\'s request path to avoid unnecessary 403 errors in your logs.', 'ezcache' ),
 			'bypass_cache_title'                        => __( 'Disable caching for the following pages', 'ezcache' ),
 			'bypass_cache_single'                       => __( 'Single Posts', 'ezcache' ),
 			'bypass_cache_pages'                        => __( 'Pages', 'ezcache' ),

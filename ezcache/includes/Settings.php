@@ -41,6 +41,7 @@ class Settings {
 		    'no_cache_query_params'         => false,
 		    'cache_clear_on_post_edit'      => true,
 		    'cache_clear_home_on_post_edit' => true,
+		    'enable_varnish_purge'          => true,
 		    'bypass_cache'                  => [
 			    'single'    => false,
 			    'pages'     => false,

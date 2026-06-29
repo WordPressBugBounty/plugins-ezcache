@@ -22,6 +22,7 @@ class SettingsController {
 		'critical_css', 'enable_webp_support',
 		// Cache behavior
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
+		'enable_varnish_purge',
 		'bypass_cache', 'rejected_uri', 'rejected_user_agent', 'rejected_cookies',
 		'excluded_minify_files',
 	];
@@ -37,6 +38,7 @@ class SettingsController {
 		'combine_body_inline_js', 'minify_css', 'combine_css', 'combine_css_footer',
 		'enable_webp_support',
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
+		'enable_varnish_purge',
 	];
 
 	/**

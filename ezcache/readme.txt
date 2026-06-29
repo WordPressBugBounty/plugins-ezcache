@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.5.2
+Stable tag: 2.5.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,10 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.5.3 =
+* New: Added a "Send PURGE requests to Varnish on cache clear" setting (enabled by default) so sites without Varnish in their request path can disable it.
+* Improved: Varnish PURGE requests are now sent to the local instance (127.0.0.1) while preserving the public Host header — eliminating spurious 403 errors in server logs when the request would otherwise leave and re-enter via the public IP.
 
 = 2.5.2 =
 * Fix: Performance settings (lazy load, defer JS, etc.) no longer reset after save — API response flattened to match frontend expectations.
