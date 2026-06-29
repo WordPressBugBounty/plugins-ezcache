@@ -2532,3 +2532,9 @@ msgstr "ניהול הרישיון מתבצע דרך Freemius. אנא השתמש 
 
 #~ msgid "Enforcement"
 #~ msgstr "אכיפה"
+
+msgid "Send PURGE requests to Varnish on cache clear"
+msgstr "שליחת בקשות PURGE ל-Varnish בעת ניקוי המטמון"
+
+msgid "When enabled, ezCache sends a PURGE request to the local Varnish instance (127.0.0.1) whenever the cache is cleared. Disable this if Varnish is not in your site's request path to avoid unnecessary 403 errors in your logs."
+msgstr "כאשר האפשרות מופעלת, ezCache שולח בקשת PURGE למופע ה-Varnish המקומי (127.0.0.1) בכל פעם שהמטמון מנוקה. כבה אפשרות זו אם Varnish אינו בנתיב הבקשות של האתר שלך, כדי למנוע שגיאות 403 מיותרות בקובצי הלוג."

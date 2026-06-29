@@ -100,10 +100,47 @@ class RedisObjectCache {
         $redis = self::get_connection();
         if ( ! $redis ) { return false; }
         try {
-            $keys = $redis->keys( 'ezcache:*' );
-            if ( $keys ) { $redis->del( $keys ); }
+            self::delete_by_pattern( $redis, 'ezcache:*' );
             return true;
         } catch ( \Exception $e ) { return false; }
+    }
+
+    /**
+     * Delete every key matching a pattern without loading them all into memory.
+     *
+     * Iterates with a non-blocking SCAN cursor and removes keys in small batches
+     * via UNLINK (falling back to DEL when UNLINK is unavailable). This avoids the
+     * memory exhaustion and Redis-blocking behaviour of KEYS + bulk DEL, which can
+     * crash PHP with a fatal "memory size exhausted" error on sites that hold tens
+     * or hundreds of thousands of cache keys.
+     *
+     * @param \Redis|RedisFallbackSocket $redis
+     * @param string                     $pattern
+     * @return int Number of keys removed.
+     */
+    private static function delete_by_pattern( $redis, $pattern ) {
+        $removed = 0;
+        // UNLINK (non-blocking delete) is only used for the phpredis client; the
+        // raw-socket fallback sticks to DEL on small, already-batched key sets.
+        $use_unlink = ( $redis instanceof \Redis ) && method_exists( $redis, 'unlink' );
+
+        if ( $redis instanceof \Redis ) {
+            // SCAN_RETRY makes phpredis retry internally so scan() never returns an
+            // empty batch mid-iteration — otherwise an empty (falsy) batch could end
+            // the loop early and leave keys behind.
+            $redis->setOption( \Redis::OPT_SCAN, \Redis::SCAN_RETRY );
+        }
+
+        $iterator = null;
+        while ( ( $keys = $redis->scan( $iterator, $pattern, 500 ) ) !== false ) {
+            if ( ! empty( $keys ) ) {
+                if ( $use_unlink ) { $redis->unlink( $keys ); }
+                else { $redis->del( $keys ); }
+                $removed += count( $keys );
+            }
+        }
+
+        return $removed;
     }
 
     public static function get_page( $url ) {
@@ -160,8 +197,17 @@ class RedisObjectCache {
         $redis = self::get_connection();
         if ( ! $redis ) { return 0; }
         try {
-            $keys = $redis->keys( 'ezcache:*' );
-            return is_array( $keys ) ? count( $keys ) : 0;
+            // Count via SCAN rather than KEYS so the dashboard status call never
+            // blocks Redis or builds a huge in-memory array on large sites.
+            if ( $redis instanceof \Redis ) {
+                $redis->setOption( \Redis::OPT_SCAN, \Redis::SCAN_RETRY );
+            }
+            $count    = 0;
+            $iterator = null;
+            while ( ( $keys = $redis->scan( $iterator, 'ezcache:*', 500 ) ) !== false ) {
+                $count += count( $keys );
+            }
+            return $count;
         } catch ( \Exception $e ) { return 0; }
     }
 
@@ -239,6 +285,25 @@ class RedisFallbackSocket {
     public function setex( $key, $ttl, $value ) { return $this->send( 'SETEX', $key, (string) $ttl, $value ); }
     public function del( array $keys ) { return $this->send( ...array_merge( [ 'DEL' ], $keys ) ); }
     public function keys( $pattern ) { $r = $this->send( 'KEYS', $pattern ); return is_array( $r ) ? $r : []; }
+
+    /**
+     * Cursor-based SCAN that mimics phpredis: the iterator is passed by reference,
+     * a batch (possibly empty) is returned each call, and false signals completion.
+     *
+     * @param int|null $iterator Pass null on the first call; 0 once iteration ends.
+     * @param string   $pattern
+     * @param int      $count
+     * @return array|false
+     */
+    public function scan( &$iterator, $pattern, $count = 500 ) {
+        // A 0 iterator (set after the final batch) means iteration is complete.
+        if ( $iterator === 0 ) { return false; }
+        $cursor = ( $iterator === null ) ? 0 : $iterator;
+        $r = $this->send( 'SCAN', (string) $cursor, 'MATCH', $pattern, 'COUNT', (string) $count );
+        if ( ! is_array( $r ) || count( $r ) < 2 ) { $iterator = 0; return false; }
+        $iterator = (int) $r[0];
+        return is_array( $r[1] ) ? $r[1] : [];
+    }
     public function info() {
         $raw = $this->send( 'INFO' );
         if ( ! $raw ) { return false; }

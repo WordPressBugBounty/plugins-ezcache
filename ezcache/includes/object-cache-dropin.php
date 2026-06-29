@@ -67,8 +67,20 @@ class WP_Object_Cache {
         $this->cache = [];
         if ( $this->connected ) {
             try {
-                $keys = $this->redis->keys( 'ezcache:obj:' . $this->prefix . '*' );
-                if ( $keys ) { $this->redis->del( $keys ); }
+                // Iterate with a non-blocking SCAN cursor and delete in small
+                // batches, instead of pulling every key into memory with KEYS and
+                // issuing one huge DEL — which can exhaust PHP's memory limit (and
+                // return a 500) on large sites with many cached objects.
+                $pattern    = 'ezcache:obj:' . $this->prefix . '*';
+                $use_unlink = method_exists( $this->redis, 'unlink' );
+                $this->redis->setOption( Redis::OPT_SCAN, Redis::SCAN_RETRY );
+                $iterator = null;
+                while ( ( $keys = $this->redis->scan( $iterator, $pattern, 500 ) ) !== false ) {
+                    if ( ! empty( $keys ) ) {
+                        if ( $use_unlink ) { $this->redis->unlink( $keys ); }
+                        else { $this->redis->del( $keys ); }
+                    }
+                }
             } catch ( Exception $e ) {}
         }
         return true;

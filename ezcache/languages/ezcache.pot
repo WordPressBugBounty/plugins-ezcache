@@ -1120,3 +1120,11 @@ msgstr ""
 #: includes/Rest/LicenseController.php:60
 msgid "License management is handled through Freemius. Please use the Account page."
 msgstr ""
+
+#: includes/Admin.php
+msgid "Send PURGE requests to Varnish on cache clear"
+msgstr ""
+
+#: includes/Admin.php
+msgid "When enabled, ezCache sends a PURGE request to the local Varnish instance (127.0.0.1) whenever the cache is cleared. Disable this if Varnish is not in your site's request path to avoid unnecessary 403 errors in your logs."
+msgstr ""

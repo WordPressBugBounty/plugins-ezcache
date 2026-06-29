@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.5.3
+Stable tag: 2.5.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,11 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.5.4 =
+* Fix: Full cache flush no longer exhausts PHP memory (fatal error / HTTP 500) on large sites — Redis keys are now removed with a non-blocking SCAN cursor in small batches via UNLINK instead of loading every key with KEYS and issuing one bulk DEL.
+* Fix: Dashboard Redis key count now uses SCAN instead of KEYS, so loading the status no longer blocks Redis or spikes memory on large datasets.
+* Improved: The Redis object-cache drop-in uses the same batched SCAN/UNLINK flush.
 
 = 2.5.3 =
 * New: Added a "Send PURGE requests to Varnish on cache clear" setting (enabled by default) so sites without Varnish in their request path can disable it.
