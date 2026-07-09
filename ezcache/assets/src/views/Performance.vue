@@ -420,7 +420,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from '../composables/useToast.js'
 
@@ -652,13 +652,30 @@ function formatBytes(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+// useApi already unwraps the { success, data } envelope, so `res` here IS the
+// payload. (The old code checked res.success / res.data on the already-unwrapped
+// object, so it silently ignored every response — hence the panel stuck at 0.)
 async function loadWebpStatus() {
   try {
     const res = await api.get('webp/status')
-    if (res.success) {
-      webp.value = res.data
+    if (res && typeof res.total !== 'undefined') {
+      webp.value = res
     }
   } catch (e) { /* ignore */ }
+}
+
+// Poll the status while a conversion is in progress so the panel reflects the
+// server-side (cron) progress live, even if the user didn't start it here.
+let webpPollTimer = null
+function startWebpPolling() {
+  if (webpPollTimer) return
+  webpPollTimer = setInterval(async () => {
+    await loadWebpStatus()
+    if (!webp.value.pending || webp.value.pending <= 0) stopWebpPolling()
+  }, 3000)
+}
+function stopWebpPolling() {
+  if (webpPollTimer) { clearInterval(webpPollTimer); webpPollTimer = null }
 }
 
 async function scanImages() {
@@ -666,11 +683,11 @@ async function scanImages() {
   webpMessage.value = ''
   try {
     const res = await api.post('webp/scan')
-    if (res.success) {
-      webpMessage.value = res.data.message
-      webpMsgType.value = 'success'
-      await loadWebpStatus()
-    }
+    webpMessage.value = (res && res.message) ? res.message : 'Scan complete'
+    webpMsgType.value = 'success'
+    await loadWebpStatus()
+    // Conversion runs server-side via cron now — poll so the user sees progress.
+    if (webp.value.pending > 0) startWebpPolling()
   } catch (e) {
     webpMessage.value = 'Scan failed'
     webpMsgType.value = 'error'
@@ -683,14 +700,15 @@ async function processWebp() {
   webpProcessing.value = true
   webpMessage.value = ''
   try {
-    // Keep processing batches until done
+    // Foreground fast-path: keep processing batches until done. The server-side
+    // cron is the safety net if the browser leaves mid-run.
     let remaining = webp.value.pending
     while (remaining > 0) {
       const res = await api.post('webp')
-      if (res.success) {
-        webpMessage.value = res.data.message
+      if (res && typeof res.remaining !== 'undefined') {
+        remaining = res.remaining
+        webpMessage.value = `Converting… ${remaining} remaining`
         webpMsgType.value = 'info'
-        remaining = res.data.remaining
         await loadWebpStatus()
       } else {
         break
@@ -725,9 +743,14 @@ async function clearWebp() {
 
 onMounted(() => {
   loadPerf()
-  loadWebpStatus()
+  loadWebpStatus().then(() => {
+    // If a conversion is already running server-side, reflect its progress live.
+    if (webp.value.pending > 0) startWebpPolling()
+  })
   loadRedisStatus()
 })
+
+onUnmounted(() => stopWebpPolling())
 </script>
 
 <style scoped>

@@ -3,7 +3,7 @@
 	Plugin Name: ezCache
 	Description: 🚀 ezCache 2026 — Lightning-fast WordPress caching with CSS/JS optimization, WebP images, preloading, database cleanup &amp; more. Free &amp; Pro.
 	Plugin URI: https://ezcache-wp.com
-	Version: 2.5.4
+	Version: 2.5.5
 	Author: uPress
 	Author URI: https://www.upress.io
 	Text Domain: ezcache
@@ -36,7 +36,7 @@ namespace {
 	define( 'EZCACHE_FILE', __FILE__ );
 	define( 'EZCACHE_URL', plugin_dir_url( __FILE__ ) );
 	define( 'EZCACHE_BASEBANE', basename( __FILE__ ) );
-	define( 'EZCACHE_VERSION', '2.5.4' );
+	define( 'EZCACHE_VERSION', '2.5.5' );
 	define( 'EZCACHE_SETTINGS_KEY', 'ezcache' );
 
 	register_activation_hook( EZCACHE_FILE, 'upress_ezcache_activation_hook' );
@@ -105,6 +105,14 @@ namespace Upress\EzCache {
 			add_action( 'init', [ $this, 'load_translation' ] );
 			add_filter( 'cron_schedules', [ $this, 'add_cron_schedules' ] );
 			add_action( 'init', [ $this, 'maybe_repair_installation' ] );
+			// Self-heal DB tables after file-replacement updates (no activation hook).
+			// maybe_upgrade() runs version migrations; ensure_tables() runs unconditionally
+			// so a site already on the current version but missing a table still recovers.
+			add_action( 'admin_init', [ '\Upress\EzCache\Updater', 'maybe_upgrade' ] );
+			add_action( 'admin_init', [ '\Upress\EzCache\Updater', 'ensure_tables' ] );
+
+			// Background WebP conversion cron — resilient, self-rescheduling queue drain.
+			add_action( 'ezcache_webp_process_batch', [ '\Upress\EzCache\Rest\WebpController', 'cron_process' ] );
 
 			new RestApi( $this );
 			new Admin( $this );

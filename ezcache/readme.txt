@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.5.4
+Stable tag: 2.5.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,10 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.5.5 =
+* Fixed: WebP "Scan Media Library" now works reliably across hosting setups.
+* Fixed: WebP conversion runs in the background with live progress until it completes.
 
 = 2.5.4 =
 * Fix: Full cache flush no longer exhausts PHP memory (fatal error / HTTP 500) on large sites — Redis keys are now removed with a non-blocking SCAN cursor in small batches via UNLINK instead of loading every key with KEYS and issuing one bulk DEL.

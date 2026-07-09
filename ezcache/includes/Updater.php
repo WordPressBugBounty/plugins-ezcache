@@ -53,15 +53,49 @@ class Updater {
 				self::update_2_0();
 			}
 
-			if ( version_compare( self::$current_version, EZCACHE_VERSION, '=' ) ) {
-				self::verify_tables();
-			}
+			// Always verify the required tables exist and are up to date. This is
+			// intentionally NOT gated behind a version match: updates deployed by
+			// replacing files (no deactivate/activate cycle) never fire the activation
+			// hook, so an unconditional verify_tables() is what lets a missing table
+			// self-heal on the next run instead of staying broken forever.
+			self::verify_tables();
 
 			// make sure we update the version in the database so we can run upgrades at later times
 			update_option( 'ezcache_version', EZCACHE_VERSION );
 		} catch ( Exception $ex ) {
 			Logger::log( 'ezCache Updater Error: ' . $ex );
 			wp_die( $ex->getMessage() );
+		}
+	}
+
+	/**
+	 * Run the upgrade routine when the stored DB version doesn't match the code
+	 * version. Hooked on admin_init so that file-replacement updates (which skip
+	 * the activation hook) still create/verify tables the first time an admin
+	 * page loads, without waiting for a deactivate/activate cycle.
+	 */
+	public static function maybe_upgrade() {
+		if ( get_option( 'ezcache_version' ) !== EZCACHE_VERSION ) {
+			self::upgrade();
+		}
+	}
+
+	/**
+	 * Ensure the plugin's tables exist without running the full upgrade flow and
+	 * without wp_die() on failure. Used as a last-resort self-heal from REST
+	 * endpoints (e.g. the WebP scan) that need the table to be present.
+	 */
+	public static function ensure_tables() {
+		global $wpdb;
+
+		self::$current_version = get_option( 'ezcache_version', 0 );
+		self::$collate         = $wpdb->get_charset_collate();
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+
+		try {
+			self::verify_tables();
+		} catch ( Exception $ex ) {
+			Logger::log( 'ezCache ensure_tables error: ' . $ex->getMessage() );
 		}
 	}
 
@@ -89,14 +123,18 @@ class Updater {
 	protected static function update_0_1_20190811() {
 		global $wpdb;
 
+		// Note: TEXT columns must not carry a DEFAULT (rejected before MySQL 8.0.13)
+		// and datetime columns must not default to the zero date '0000-00-00'
+		// (rejected under the NO_ZERO_DATE / strict SQL mode used by MySQL 8+).
+		// Both are made nullable — every INSERT already sets these values explicitly.
 		$wpdb->query( "CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}ezcache_webp_images` (
 			`id` bigint(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 			`uid` varchar(191) NOT NULL DEFAULT '',
-			`url` text(0) NOT NULL DEFAULT '',
-			`webp_url` text(0) NOT NULL DEFAULT '',
+			`url` text NULL,
+			`webp_url` text NULL,
 			`status` enum('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
-			`created_at` datetime(0) NOT NULL DEFAULT '0000-00-00 00:00:00',
-			`updated_at` datetime(0) NOT NULL DEFAULT '0000-00-00 00:00:00',
+			`created_at` datetime NULL DEFAULT NULL,
+			`updated_at` datetime NULL DEFAULT NULL,
 			PRIMARY KEY (`id`),
 			UNIQUE INDEX (`uid`) USING BTREE
 		) ". ( self::$collate ) );
@@ -115,9 +153,9 @@ class Updater {
 
 		$cols = $wpdb->get_col( "SHOW COLUMNS FROM `{$wpdb->prefix}ezcache_webp_images`", 0 );
 		if( ! in_array( 'path', $cols ) ) {
-			$wpdb->query( "ALTER TABLE `{$wpdb->prefix}ezcache_webp_images` 
-				ADD COLUMN `path` text(0) NOT NULL DEFAULT '' AFTER `webp_url`,
-				ADD COLUMN `webp_path` text(0) NOT NULL DEFAULT '' AFTER `path`,
+			$wpdb->query( "ALTER TABLE `{$wpdb->prefix}ezcache_webp_images`
+				ADD COLUMN `path` text NULL AFTER `webp_url`,
+				ADD COLUMN `webp_path` text NULL AFTER `path`,
 				ADD COLUMN `original_size` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `webp_path`,
 				ADD COLUMN `webp_size` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `original_size`
 			" );
