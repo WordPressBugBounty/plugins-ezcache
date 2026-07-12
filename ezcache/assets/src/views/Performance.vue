@@ -567,13 +567,17 @@ async function loadPerf() {
   try {
     const data = await getPerformance()
     Object.assign(form.value, data)
-    if (data.preload_running !== undefined) {
+    // Backend sends a nested `preload_status` object; the old code read flat keys
+    // that never existed, so the panel stayed at 0% while a preload was running.
+    if (data && data.preload_status) {
+      const ps = data.preload_status
       preloadStatus.value = {
-        running: data.preload_running,
-        processed: data.preload_processed || 0,
-        total: data.preload_total || 0,
-        remaining: data.preload_remaining || 0,
+        running: ps.status === 'running',
+        processed: ps.processed || 0,
+        total: ps.total || 0,
+        remaining: ps.remaining || 0,
       }
+      if (preloadStatus.value.running) startPreloadPolling()
     }
   } catch (e) {
     // silently use defaults
@@ -594,12 +598,39 @@ async function savePerf() {
   }
 }
 
+// Poll the preload status so the panel reflects the server-side (cron) progress
+// live, and picks it up on page load when a run is already in progress.
+let preloadPollTimer = null
+async function refreshPreloadStatus() {
+  try {
+    const data = await getPerformance()
+    if (data && data.preload_status) {
+      const ps = data.preload_status
+      preloadStatus.value = {
+        running: ps.status === 'running',
+        processed: ps.processed || 0,
+        total: ps.total || 0,
+        remaining: ps.remaining || 0,
+      }
+      if (!preloadStatus.value.running) stopPreloadPolling()
+    }
+  } catch (e) { /* ignore */ }
+}
+function startPreloadPolling() {
+  if (preloadPollTimer) return
+  preloadPollTimer = setInterval(refreshPreloadStatus, 3000)
+}
+function stopPreloadPolling() {
+  if (preloadPollTimer) { clearInterval(preloadPollTimer); preloadPollTimer = null }
+}
+
 async function runPreload() {
   preloadLoading.value = true
   try {
     await apiStart()
     success(t('preload_started'))
     preloadStatus.value.running = true
+    startPreloadPolling()
   } catch (e) {
     error(t('error'))
   } finally {
@@ -613,6 +644,7 @@ async function stopPreload() {
     await apiStop()
     success(t('preload_stopped'))
     preloadStatus.value.running = false
+    stopPreloadPolling()
   } catch (e) {
     error(t('error'))
   } finally {
@@ -750,7 +782,7 @@ onMounted(() => {
   loadRedisStatus()
 })
 
-onUnmounted(() => stopWebpPolling())
+onUnmounted(() => { stopWebpPolling(); stopPreloadPolling() })
 </script>
 
 <style scoped>

@@ -18,7 +18,7 @@
           </svg>
           <div class="ezc-sidebar__brand">
             <span class="ezc-sidebar__name">ezCache</span>
-            <span class="ezc-sidebar__version">v2.5.1</span>
+            <span class="ezc-sidebar__version" v-if="version">v{{ version }}</span>
           </div>
         </div>
 
@@ -91,6 +91,7 @@ import { useToast } from './composables/useToast.js'
 
 const cfg = window.ezcache || {}
 const trans = cfg.trans || {}
+const version = cfg.version || ''
 
 function t(key) {
   return trans[key] || key

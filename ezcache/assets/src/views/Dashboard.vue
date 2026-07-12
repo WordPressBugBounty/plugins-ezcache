@@ -221,7 +221,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from '../composables/useToast.js'
 
@@ -335,15 +335,30 @@ async function loadStats() {
 async function loadPreload() {
   try {
     const data = await getPerformance()
-    if (data.preload_running !== undefined) {
+    // Backend sends a nested `preload_status` object. The old code read flat keys
+    // (preload_running/…) that never existed, so the widget stayed blank/idle even
+    // while a preload was running. Map the real shape and auto-poll while running.
+    if (data && data.preload_status) {
+      const ps = data.preload_status
       preloadStatus.value = {
-        running: data.preload_running,
-        processed: data.preload_processed || 0,
-        total: data.preload_total || 0,
-        remaining: data.preload_remaining || 0,
+        running: ps.status === 'running',
+        processed: ps.processed || 0,
+        total: ps.total || 0,
+        remaining: ps.remaining || 0,
       }
+      if (preloadStatus.value.running) startPreloadPolling()
+      else stopPreloadPolling()
     }
   } catch (e) { /* ignore */ }
+}
+
+let preloadPollTimer = null
+function startPreloadPolling() {
+  if (preloadPollTimer) return
+  preloadPollTimer = setInterval(loadPreload, 3000)
+}
+function stopPreloadPolling() {
+  if (preloadPollTimer) { clearInterval(preloadPollTimer); preloadPollTimer = null }
 }
 
 async function loadRedis() {
@@ -400,6 +415,8 @@ const speedomUrl = computed(() => {
 onMounted(async () => {
   await Promise.all([loadStats(), loadPreload(), loadRedis(), loadDevMode()])
 })
+
+onUnmounted(() => stopPreloadPolling())
 </script>
 
 <style scoped>

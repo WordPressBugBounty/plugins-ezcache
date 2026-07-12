@@ -419,6 +419,7 @@ class Admin {
 
 		// Freemius removed — Pro is unlocked for everyone.
 		wp_localize_script( 'ezcache-options', 'ezcache', [
+			'version'                => EZCACHE_VERSION,
 			'assets_url'             => esc_url_raw( EZCACHE_URL . '/assets' ),
 			'ajax_url'               => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
 			'rest_url'               => esc_url_raw( rest_url() ),

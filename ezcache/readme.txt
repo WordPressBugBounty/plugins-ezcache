@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.5.5
+Stable tag: 2.5.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,10 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.5.6 =
+* Fixed: Cache preload now shows live progress in the dashboard and performance screens (it previously appeared stuck at 0%), and keeps updating after a page refresh while a run is in progress.
+* Fixed: The plugin version shown in the sidebar now matches the installed version.
 
 = 2.5.5 =
 * Fixed: WebP "Scan Media Library" now works reliably across hosting setups.
