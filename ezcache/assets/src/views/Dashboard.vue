@@ -124,14 +124,19 @@
       <div class="ezc-card__body">
         <div class="ezc-preload-row">
           <span class="ezc-preload-label">{{ t('status') }}:</span>
-          <span :class="['ezc-badge', preloadStatus.running ? 'ezc-badge--running' : 'ezc-badge--idle']">
-            {{ preloadStatus.running ? t('enabled') : t('disabled') }}
+          <span :class="['ezc-badge', (preloadStatus.running || preloadCompleted) ? 'ezc-badge--running' : 'ezc-badge--idle']">
+            {{ preloadStatus.running ? t('enabled') : preloadCompleted ? t('preload_completed') : t('disabled') }}
           </span>
         </div>
         <div v-if="preloadStatus.running" class="ezc-preload-row">
           <span class="ezc-preload-label">{{ t('processed') }}:</span>
           <strong>{{ preloadStatus.processed }} / {{ preloadStatus.total }}</strong>
           <span class="ezc-text-muted ml-1">({{ preloadStatus.remaining }} {{ t('remaining') }})</span>
+        </div>
+        <div v-else-if="preloadCompleted" class="ezc-preload-row">
+          <span class="ezc-preload-label">{{ t('preload_last_run') }}:</span>
+          <strong>{{ preloadStatus.processed }} {{ t('pages') }}</strong>
+          <span v-if="preloadStatus.finished" class="ezc-text-muted ml-1">· {{ timeAgo(preloadStatus.finished) }}</span>
         </div>
         <div v-if="preloadStatus.running" class="ezc-preload-progress">
           <div class="ezc-preload-bar" :style="{ width: preloadPercent + '%' }"></div>
@@ -302,6 +307,25 @@ const preloadPercent = computed(() => {
   return Math.round((preloadStatus.value.processed / preloadStatus.value.total) * 100)
 })
 
+// Show a "completed" summary once a run has finished.
+const preloadCompleted = computed(() =>
+  preloadStatus.value &&
+  !preloadStatus.value.running &&
+  preloadStatus.value.status === 'completed' &&
+  preloadStatus.value.processed > 0
+)
+
+function timeAgo(ts) {
+  if (!ts) return ''
+  const s = Math.floor(Date.now() / 1000) - ts
+  if (s < 60) return t('time_just_now')
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ${t('time_ago')}`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ${t('time_ago')}`
+  return `${Math.floor(h / 24)}d ${t('time_ago')}`
+}
+
 function formatSize(bytes) {
   if (!bytes) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB']
@@ -342,9 +366,11 @@ async function loadPreload() {
       const ps = data.preload_status
       preloadStatus.value = {
         running: ps.status === 'running',
+        status: ps.status || 'idle',
         processed: ps.processed || 0,
         total: ps.total || 0,
         remaining: ps.remaining || 0,
+        finished: ps.finished || 0,
       }
       if (preloadStatus.value.running) startPreloadPolling()
       else stopPreloadPolling()

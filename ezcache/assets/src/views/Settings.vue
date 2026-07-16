@@ -67,6 +67,20 @@
           </div>
           <div class="ezc-toggle">
             <div class="ezc-toggle__info">
+              <div class="ezc-toggle__label">{{ t('ignore_query_params') }}</div>
+              <div class="ezc-toggle__desc">{{ t('ignore_query_params_description') }}</div>
+            </div>
+            <label class="ezc-switch">
+              <input type="checkbox" v-model="form.ignore_query_params">
+              <span class="ezc-switch__track"></span>
+            </label>
+          </div>
+          <div v-if="form.ignore_query_params" style="margin:4px 0 4px">
+            <label class="ezc-toggle__label">{{ t('ignored_query_params_list_label') }}</label>
+            <textarea class="ezc-textarea" v-model="form.ignored_query_params_list" rows="6" style="width:100%;margin-top:6px"></textarea>
+          </div>
+          <div class="ezc-toggle">
+            <div class="ezc-toggle__info">
               <div class="ezc-toggle__label">{{ t('cache_clear_on_post_edit') }}</div>
               <div class="ezc-toggle__desc">{{ t('cache_clear_on_post_edit_description') }}</div>
             </div>
@@ -425,6 +439,8 @@ const form = ref({
   no_cache_comment_authors: true,
   separate_mobile_cache: true,
   no_cache_query_params: false,
+  ignore_query_params: false,
+  ignored_query_params_list: '',
   cache_clear_on_post_edit: true,
   cache_clear_home_on_post_edit: true,
   enable_varnish_purge: true,

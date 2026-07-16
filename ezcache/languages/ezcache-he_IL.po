@@ -2538,3 +2538,30 @@ msgstr "שליחת בקשות PURGE ל-Varnish בעת ניקוי המטמון"
 
 msgid "When enabled, ezCache sends a PURGE request to the local Varnish instance (127.0.0.1) whenever the cache is cleared. Disable this if Varnish is not in your site's request path to avoid unnecessary 403 errors in your logs."
 msgstr "כאשר האפשרות מופעלת, ezCache שולח בקשת PURGE למופע ה-Varnish המקומי (127.0.0.1) בכל פעם שהמטמון מנוקה. כבה אפשרות זו אם Varnish אינו בנתיב הבקשות של האתר שלך, כדי למנוע שגיאות 403 מיותרות בקובצי הלוג."
+
+msgid "Completed"
+msgstr "הושלם"
+
+msgid "Last preload"
+msgstr "טעינה מקדימה אחרונה"
+
+msgid "pages"
+msgstr "עמודים"
+
+msgid "ago"
+msgstr "לפני"
+
+msgid "just now"
+msgstr "הרגע"
+
+msgid "Ignore tracking parameters when caching"
+msgstr "התעלמות מפרמטרי מעקב בעת שמירה במטמון"
+
+msgid "Advanced: serve the same cached page regardless of the value of tracking parameters (such as gclid or utm_source). Useful for ad-campaign traffic so every click is served from cache instead of creating a new cache entry per click."
+msgstr "מתקדם: הצגת אותו עמוד מהמטמון ללא תלות בערך של פרמטרי מעקב (כמו gclid או utm_source). שימושי לתנועה מקמפיינים ממומנים, כך שכל קליק מוגש מהמטמון במקום ליצור רשומת מטמון חדשה לכל קליק."
+
+msgid "Parameters to ignore (one per line)"
+msgstr "פרמטרים להתעלם מהם (אחד בכל שורה)"
+
+msgid "Parameters to ignore (one per line; add a trailing * to match by prefix, e.g. utm_*)"
+msgstr "פרמטרים להתעלם מהם (אחד בכל שורה; הוסיפו * בסוף להתאמת קידומת, למשל utm_*)"

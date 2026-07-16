@@ -23,6 +23,7 @@ class SettingsController {
 		// Cache behavior
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
 		'enable_varnish_purge',
+		'ignore_query_params', 'ignored_query_params_list',
 		'bypass_cache', 'rejected_uri', 'rejected_user_agent', 'rejected_cookies',
 		'excluded_minify_files',
 	];
@@ -39,6 +40,7 @@ class SettingsController {
 		'enable_webp_support',
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
 		'enable_varnish_purge',
+		'ignore_query_params',
 	];
 
 	/**

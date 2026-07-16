@@ -1128,3 +1128,35 @@ msgstr ""
 #: includes/Admin.php
 msgid "When enabled, ezCache sends a PURGE request to the local Varnish instance (127.0.0.1) whenever the cache is cleared. Disable this if Varnish is not in your site's request path to avoid unnecessary 403 errors in your logs."
 msgstr ""
+
+#: includes/Admin.php
+msgid "Completed"
+msgstr ""
+
+#: includes/Admin.php
+msgid "Last preload"
+msgstr ""
+
+#: includes/Admin.php
+msgid "pages"
+msgstr ""
+
+#: includes/Admin.php
+msgid "ago"
+msgstr ""
+
+#: includes/Admin.php
+msgid "just now"
+msgstr ""
+
+#: includes/Admin.php
+msgid "Ignore tracking parameters when caching"
+msgstr ""
+
+#: includes/Admin.php
+msgid "Parameters to ignore (one per line)"
+msgstr ""
+
+#: includes/Admin.php
+msgid "Parameters to ignore (one per line; add a trailing * to match by prefix, e.g. utm_*)"
+msgstr ""

@@ -692,6 +692,114 @@ class Cache {
 	 *
 	 * @return string
 	 */
+	/**
+	 * Lowercased list of query-string parameters to ignore when building the
+	 * cache key. Only meaningful when the ignore_query_params setting is on.
+	 *
+	 * @return array
+	 */
+	private function get_ignored_query_params() {
+		static $cached = null;
+		if ( null !== $cached ) {
+			return $cached;
+		}
+		$raw  = isset( $this->settings->ignored_query_params_list ) ? (string) $this->settings->ignored_query_params_list : '';
+		$list = preg_split( '/[\s,]+/', strtolower( $raw ), -1, PREG_SPLIT_NO_EMPTY );
+
+		/**
+		 * Filters the query-string parameters ignored when building the cache key.
+		 *
+		 * @param array $list Lowercased parameter names.
+		 */
+		$list   = apply_filters( 'ezcache_ignored_query_params', $list );
+		$cached = array_values( array_unique( array_map( 'strtolower', (array) $list ) ) );
+
+		return $cached;
+	}
+
+	/**
+	 * Normalize a raw query string for cache-key purposes. When the
+	 * ignore_query_params feature is on, drop the ignored (tracking) parameters
+	 * and sort the rest so different orderings and tracking values map to the
+	 * same cache entry. Returns '' when nothing meaningful remains.
+	 *
+	 * @param string $query_string
+	 * @return string
+	 */
+	private function normalize_query_string( $query_string ) {
+		if ( '' === (string) $query_string ) {
+			return '';
+		}
+		if ( empty( $this->settings->ignore_query_params ) ) {
+			return $query_string; // feature off — behaviour unchanged
+		}
+		parse_str( (string) $query_string, $params );
+		if ( empty( $params ) ) {
+			return '';
+		}
+		$ignored = $this->get_ignored_query_params();
+		foreach ( array_keys( $params ) as $key ) {
+			if ( $this->query_param_is_ignored( strtolower( $key ), $ignored ) ) {
+				unset( $params[ $key ] );
+			}
+		}
+		if ( empty( $params ) ) {
+			return '';
+		}
+		ksort( $params );
+
+		return http_build_query( $params );
+	}
+
+	/**
+	 * Whether a (lowercased) query parameter name matches the ignore list.
+	 * Supports exact names and trailing-"*" prefix patterns (e.g. "utm_*").
+	 * A bare "*" is skipped to avoid accidentally dropping every parameter.
+	 *
+	 * @param string $key     Lowercased parameter name.
+	 * @param array  $ignored Lowercased ignore patterns.
+	 * @return bool
+	 */
+	private function query_param_is_ignored( $key, $ignored ) {
+		foreach ( $ignored as $pattern ) {
+			if ( '' === $pattern || '*' === $pattern ) {
+				continue;
+			}
+			if ( '*' === substr( $pattern, -1 ) ) {
+				$prefix = substr( $pattern, 0, -1 );
+				if ( '' !== $prefix && 0 === strpos( $key, $prefix ) ) {
+					return true;
+				}
+			} elseif ( $key === $pattern ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Build the full-page (Redis) cache URL for the current request, applying
+	 * the same query-string normalization used for the disk cache key.
+	 *
+	 * @return string
+	 */
+	private function build_fullpage_url() {
+		$scheme = ( is_ssl() ? 'https://' : 'http://' );
+		$host   = $_SERVER['HTTP_HOST'] ?? '';
+		$uri    = $_SERVER['REQUEST_URI'] ?? '/';
+		$path   = $uri;
+		$qs     = '';
+		$pos    = strpos( $uri, '?' );
+		if ( false !== $pos ) {
+			$path = substr( $uri, 0, $pos );
+			$qs   = substr( $uri, $pos + 1 );
+		}
+		$norm = $this->normalize_query_string( $qs );
+
+		return $scheme . $host . $path . ( '' !== $norm ? '?' . $norm : '' );
+	}
+
 	public function get_cache_filename() {
 		$settings = $this->settings;
 
@@ -713,7 +821,12 @@ class Cache {
 
 		$filename = 'index';
 		if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
-			$filename = md5( $_SERVER['QUERY_STRING'] );
+			$normalized = $this->normalize_query_string( $_SERVER['QUERY_STRING'] );
+			// When every parameter was ignored, fall back to 'index' so the
+			// request maps to the same cache entry as the clean URL.
+			if ( '' !== $normalized ) {
+				$filename = md5( $normalized );
+			}
 		}
 
 		return $filename . $extra_str . '.html';
@@ -736,9 +849,7 @@ class Cache {
 			! empty( $this->settings->enable_redis_fullpage )
 			&& class_exists( '\\Upress\\EzCache\\RedisObjectCache' )
 		) {
-			$current_url = ( is_ssl() ? 'https://' : 'http://' )
-				. ( $_SERVER['HTTP_HOST'] ?? '' )
-				. ( $_SERVER['REQUEST_URI'] ?? '/' );
+			$current_url = $this->build_fullpage_url();
 			$cached_html = \Upress\EzCache\RedisObjectCache::get_page( $current_url );
 			if ( false !== $cached_html && '' !== $cached_html ) {
 				header( 'X-Cached-With: ezCache (Redis)' );
@@ -946,9 +1057,7 @@ class Cache {
 			! empty( $settings->enable_redis_fullpage )
 			&& class_exists( '\\Upress\\EzCache\\RedisObjectCache' )
 		) {
-			$current_url = ( is_ssl() ? 'https://' : 'http://' )
-				. ( $_SERVER['HTTP_HOST'] ?? '' )
-				. ( $_SERVER['REQUEST_URI'] ?? '/' );
+			$current_url = $this->build_fullpage_url();
 			$ttl = ! empty( $settings->cache_lifetime ) ? (int) $settings->cache_lifetime : 604800;
 			\Upress\EzCache\RedisObjectCache::set_page( $current_url, $buffer, $ttl );
 		}

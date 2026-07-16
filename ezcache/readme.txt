@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.5.6
+Stable tag: 2.6.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,12 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.6.0 =
+* Added: Optional "Ignore tracking parameters when caching" setting (off by default, for advanced users). When enabled, pages are served from cache regardless of the value of tracking parameters such as gclid, fbclid or utm_*, so ad-campaign traffic is served from cache instead of creating a new cache entry per click. The ignored parameter list is configurable.
+
+= 2.5.7 =
+* Added: The cache preload panel now shows a "Completed" status with the number of pages preloaded and when the last run finished, so you can tell at a glance whether preloading happened.
 
 = 2.5.6 =
 * Fixed: Cache preload now shows live progress in the dashboard and performance screens (it previously appeared stuck at 0%), and keeps updating after a page refresh while a run is in progress.

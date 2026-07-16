@@ -33,13 +33,18 @@
             <div class="ezc-preload-meta">
               <div class="ezc-preload-meta__item">
                 <span class="ezc-preload-meta__label">{{ t('status') }}</span>
-                <span :class="['ezc-status-pill', preloadStatus.running ? 'green' : 'gray']">
-                  {{ preloadStatus.running ? t('enabled') : t('disabled') }}
+                <span :class="['ezc-status-pill', (preloadStatus.running || preloadCompleted) ? 'green' : 'gray']">
+                  {{ preloadStatus.running ? t('enabled') : preloadCompleted ? t('preload_completed') : t('disabled') }}
                 </span>
               </div>
               <div v-if="preloadStatus.running" class="ezc-preload-meta__item">
                 <span class="ezc-preload-meta__label">{{ t('processed') }}</span>
                 <strong>{{ preloadStatus.processed }} / {{ preloadStatus.total }}</strong>
+              </div>
+              <div v-else-if="preloadCompleted" class="ezc-preload-meta__item">
+                <span class="ezc-preload-meta__label">{{ t('preload_last_run') }}</span>
+                <strong>{{ preloadStatus.processed }} {{ t('pages') }}</strong>
+                <span v-if="preloadStatus.finished" style="opacity:.7;margin-left:6px">· {{ timeAgo(preloadStatus.finished) }}</span>
               </div>
             </div>
             <div v-if="preloadStatus.running" class="ezc-preload-progress">
@@ -464,12 +469,31 @@ const loading = ref(true)
 const saving = ref(false)
 const preloadLoading = ref(false)
 const cleanupLoading = ref(false)
-const preloadStatus = ref({ running: false, processed: 0, total: 0, remaining: 0 })
+const preloadStatus = ref({ running: false, status: 'idle', processed: 0, total: 0, remaining: 0, finished: 0 })
 
 const preloadPercent = computed(() => {
   if (!preloadStatus.value.total) return 0
   return Math.round((preloadStatus.value.processed / preloadStatus.value.total) * 100)
 })
+
+// Show a "completed" summary once a run has finished (the backend keeps the
+// finished timestamp + processed count even when nothing is running).
+const preloadCompleted = computed(() =>
+  !preloadStatus.value.running &&
+  preloadStatus.value.status === 'completed' &&
+  preloadStatus.value.processed > 0
+)
+
+function timeAgo(ts) {
+  if (!ts) return ''
+  const s = Math.floor(Date.now() / 1000) - ts
+  if (s < 60) return t('time_just_now')
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ${t('time_ago')}`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ${t('time_ago')}`
+  return `${Math.floor(h / 24)}d ${t('time_ago')}`
+}
 
 const form = ref({
   enable_preload: false,
@@ -573,9 +597,11 @@ async function loadPerf() {
       const ps = data.preload_status
       preloadStatus.value = {
         running: ps.status === 'running',
+        status: ps.status || 'idle',
         processed: ps.processed || 0,
         total: ps.total || 0,
         remaining: ps.remaining || 0,
+        finished: ps.finished || 0,
       }
       if (preloadStatus.value.running) startPreloadPolling()
     }
@@ -608,9 +634,11 @@ async function refreshPreloadStatus() {
       const ps = data.preload_status
       preloadStatus.value = {
         running: ps.status === 'running',
+        status: ps.status || 'idle',
         processed: ps.processed || 0,
         total: ps.total || 0,
         remaining: ps.remaining || 0,
+        finished: ps.finished || 0,
       }
       if (!preloadStatus.value.running) stopPreloadPolling()
     }
