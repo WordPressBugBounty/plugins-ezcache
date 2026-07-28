@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.6.0
+Stable tag: 2.6.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,9 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.6.1 =
+* Fixed: "Run Database Cleanup Now" now actually cleans the database — it previously reported success without deleting anything (it called a class left over from an internal rename). The button now also reports how many items were removed in each category.
 
 = 2.6.0 =
 * Added: Optional "Ignore tracking parameters when caching" setting (off by default, for advanced users). When enabled, pages are served from cache regardless of the value of tracking parameters such as gclid, fbclid or utm_*, so ad-campaign traffic is served from cache instead of creating a new cache entry per click. The ignored parameter list is configurable.

@@ -3,7 +3,7 @@ namespace Upress\EzCache\Rest;
 
 use Upress\EzCache\Settings;
 use Upress\EzCache\Preload;
-use Upress\EzCache\DatabaseCleanup;
+use Upress\EzCache\DatabaseOptimizer;
 use WP_REST_Request;
 use Upress\EzCache\PremiumFeatures;
 use Upress\EzCache\CriticalCSS;
@@ -136,12 +136,22 @@ class PerformanceController {
 	/**
 	 * Run database cleanup
 	 */
-	function runDbCleanup() {
-		if ( class_exists( '\Upress\EzCache\DatabaseCleanup' ) ) {
-			DatabaseCleanup::instance()->run();
-		}
+	function runDbCleanup( $request ) {
+		// The Vue UI posts an associative map ( { db_cleanup_revisions: true, … } )
+		// and does NOT persist the toggles before running, so the selected tasks
+		// must be taken from the request body. DatabaseOptimizer::clean() expects a
+		// flat list of enabled task keys, so filter out the false values and keep the
+		// keys. An empty body falls back to the saved settings.
+		$params = $request ? (array) $request->get_json_params() : [];
+		$tasks  = ! empty( $params ) ? array_keys( array_filter( $params ) ) : null;
 
-		return wp_send_json_success( [ 'message' => 'Database cleanup completed' ] );
+		$optimizer = new DatabaseOptimizer();
+		$results   = $optimizer->clean( $tasks );
+
+		return wp_send_json_success( [
+			'message' => 'Database cleanup completed',
+			'results' => $results,
+		] );
 	}
 
 	/**

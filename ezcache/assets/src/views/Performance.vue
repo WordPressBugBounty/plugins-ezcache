@@ -685,8 +685,12 @@ async function runCleanup() {
   try {
     const cleanupData = {}
     dbCleanupItems.forEach(item => { cleanupData[item.key] = form.value[item.key] })
-    await runDbCleanup(cleanupData)
-    success(t('db_cleaned'))
+    const res = await runDbCleanup(cleanupData)
+    const results = (res && res.results) ? res.results : {}
+    const parts = Object.entries(results)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([k, v]) => `${v} ${k.replace(/_/g, ' ')}`)
+    success(parts.length ? `${t('db_cleaned')}: ${parts.join(', ')}` : t('db_cleaned'))
   } catch (e) {
     error(t('error'))
   } finally {
