@@ -962,6 +962,25 @@ class Cache {
 			return $buffer;
 		}
 
+		// Only process and cache real HTML responses. Non-HTML output — text/plain
+		// (IndexNow key files, llms.txt), RSS/Atom feeds, JSON, etc. — must pass
+		// through untouched: appending the footer comment or running the HTML
+		// transforms (minify, WebP, combine) on it corrupts the content, and
+		// IndexNow in particular requires a byte-exact body. We bail only on an
+		// explicit non-HTML Content-Type; a missing header is treated as HTML so
+		// normal page caching is never disabled.
+		$content_type = '';
+		foreach ( headers_list() as $header ) {
+			if ( stripos( $header, 'content-type:' ) === 0 ) {
+				$content_type = strtolower( $header );
+			}
+		}
+		if ( '' !== $content_type
+			&& false === stripos( $content_type, 'text/html' )
+			&& false === stripos( $content_type, 'application/xhtml' ) ) {
+			return $buffer;
+		}
+
 		$real_cache_dir  = $this->get_real_cache_dir();
 		$cache_file      = $this->get_cache_file_path() . '.gz';
 		$asset_cache_dir = $this->get_default_cache_path() . 'min/';

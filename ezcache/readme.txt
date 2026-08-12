@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.6.1
+Stable tag: 2.6.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -44,8 +44,14 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 
 == Changelog ==
 
+= 2.6.3 =
+* Fixed: The cache no longer modifies non-HTML responses. Plain-text files (such as IndexNow verification keys and llms.txt), RSS/Atom feeds and other non-HTML output previously received the ezCache footer comment and other HTML optimizations, which could corrupt them and break IndexNow verification, for example. Only real HTML pages are processed and cached now; everything else passes through untouched.
+
+= 2.6.2 =
+* Fixed: Inline JavaScript minification no longer corrupts non-JavaScript script blocks such as JSON-LD structured data. The minifier turned true/false into !0/!1 (valid JavaScript but invalid JSON), which could break Google Rich Results with no visible error on the site. Only real JavaScript is minified now; JSON-LD, application/json and template blocks are left untouched. The same protection was added for non-CSS style blocks, and the page cache is flushed on update so previously cached pages are regenerated.
+
 = 2.6.1 =
-* Fixed: "Run Database Cleanup Now" now actually cleans the database — it previously reported success without deleting anything (it called a class left over from an internal rename). The button now also reports how many items were removed in each category.
+* Fixed: "Run Database Cleanup Now" now actually cleans the database. It previously reported success without deleting anything (it called a class left over from an internal rename). The button now also reports how many items were removed in each category.
 
 = 2.6.0 =
 * Added: Optional "Ignore tracking parameters when caching" setting (off by default, for advanced users). When enabled, pages are served from cache regardless of the value of tracking parameters such as gclid, fbclid or utm_*, so ad-campaign traffic is served from cache instead of creating a new cache entry per click. The ignored parameter list is configurable.
@@ -62,13 +68,13 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 * Fixed: WebP conversion runs in the background with live progress until it completes.
 
 = 2.5.4 =
-* Fix: Full cache flush no longer exhausts PHP memory (fatal error / HTTP 500) on large sites — Redis keys are now removed with a non-blocking SCAN cursor in small batches via UNLINK instead of loading every key with KEYS and issuing one bulk DEL.
+* Fix: Full cache flush no longer exhausts PHP memory (fatal error / HTTP 500) on large sites. Redis keys are now removed with a non-blocking SCAN cursor in small batches via UNLINK instead of loading every key with KEYS and issuing one bulk DEL.
 * Fix: Dashboard Redis key count now uses SCAN instead of KEYS, so loading the status no longer blocks Redis or spikes memory on large datasets.
 * Improved: The Redis object-cache drop-in uses the same batched SCAN/UNLINK flush.
 
 = 2.5.3 =
 * New: Added a "Send PURGE requests to Varnish on cache clear" setting (enabled by default) so sites without Varnish in their request path can disable it.
-* Improved: Varnish PURGE requests are now sent to the local instance (127.0.0.1) while preserving the public Host header — eliminating spurious 403 errors in server logs when the request would otherwise leave and re-enter via the public IP.
+* Improved: Varnish PURGE requests are now sent to the local instance (127.0.0.1) while preserving the public Host header, eliminating spurious 403 errors in server logs when the request would otherwise leave and re-enter via the public IP.
 
 = 2.5.2 =
 * Fix: Performance settings (lazy load, defer JS, etc.) no longer reset after save — API response flattened to match frontend expectations.

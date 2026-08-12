@@ -221,6 +221,15 @@ class Minify_HTML
     {
         $openStyle = "<style{$m[1]}";
         $css = $m[2];
+
+        // Only minify real CSS. Preserve <style> blocks with a non-CSS type
+        // verbatim (a missing type means CSS, the HTML5 default).
+        if (preg_match('/\\btype\\s*=\\s*["\']?([^"\'\\s>]+)/i', $m[1], $t)) {
+            if ('text/css' !== strtolower(trim($t[1]))) {
+                return $this->_reservePlace("{$openStyle}{$css}</style>");
+            }
+        }
+
         // remove HTML comments
         $css = preg_replace('/(?:^\\s*<!--|-->\\s*$)/u', '', $css);
 
@@ -243,6 +252,26 @@ class Minify_HTML
     {
         $openScript = "<script{$m[2]}";
         $js = $m[3];
+
+        // Only minify real JavaScript. A <script> with a non-JS type (JSON-LD,
+        // application/json, template types such as text/x-template / Vue /
+        // Handlebars, etc.) must be preserved verbatim: the JS minifier rewrites
+        // tokens like `true`->`!0` and `false`->`!1`, which is valid JavaScript but
+        // invalid JSON and would corrupt Structured Data. A missing type means
+        // JavaScript (the HTML5 default), so those are still minified. Non-JS blocks
+        // are reserved so later HTML-minification passes leave them untouched too.
+        if (preg_match('/\\btype\\s*=\\s*["\']?([^"\'\\s>]+)/i', $m[2], $t)) {
+            $jsTypes = array(
+                'text/javascript',
+                'application/javascript',
+                'application/ecmascript',
+                'text/ecmascript',
+                'module',
+            );
+            if (!in_array(strtolower(trim($t[1])), $jsTypes, true)) {
+                return $this->_reservePlace("{$m[1]}{$openScript}{$js}</script>{$m[4]}");
+            }
+        }
 
         // whitespace surrounding? preserve at least one space
         $ws1 = ($m[1] === '') ? '' : ' ';

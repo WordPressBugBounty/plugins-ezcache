@@ -60,6 +60,14 @@ class Updater {
 			// self-heal on the next run instead of staying broken forever.
 			self::verify_tables();
 
+			// A plugin update can change generated markup/minification, so flush the
+			// page cache once per version change. This ensures stale or corrupted
+			// cached pages (e.g. JSON-LD altered by an older inline-JS minifier) are
+			// regenerated on the next request instead of persisting until TTL expiry.
+			if ( version_compare( (string) self::$current_version, EZCACHE_VERSION, '!=' ) && class_exists( '\\Upress\\EzCache\\Cache' ) ) {
+				Cache::instance()->clear_cache();
+			}
+
 			// make sure we update the version in the database so we can run upgrades at later times
 			update_option( 'ezcache_version', EZCACHE_VERSION );
 		} catch ( Exception $ex ) {
