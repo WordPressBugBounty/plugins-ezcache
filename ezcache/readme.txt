@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.6.3
+Stable tag: 2.6.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,10 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.6.4 =
+* Fixed: URL exclusions (Rejected URIs) with a wildcard (*) at the end or in the middle of the pattern now work correctly. Previously only a wildcard directly after a slash matched, so patterns like *add_to_wishlist* silently failed with no error.
+* Added: Requests carrying a nonce or action parameter (_wpnonce, wc-ajax, add-to-cart, action, doing_wp_cron, add_to_wishlist and similar) are no longer cached. This prevents cache bloat from per-request values and avoids serving one visitor's nonce to another. The list is filterable.
 
 = 2.6.3 =
 * Fixed: The cache no longer modifies non-HTML responses. Plain-text files (such as IndexNow verification keys and llms.txt), RSS/Atom feeds and other non-HTML output previously received the ezCache footer comment and other HTML optimizations, which could corrupt them and break IndexNow verification, for example. Only real HTML pages are processed and cached now; everything else passes through untouched.

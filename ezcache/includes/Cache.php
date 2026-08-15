@@ -355,6 +355,21 @@ class Cache {
 			return false;
 		}
 
+		// Never cache requests carrying a nonce or an action parameter. These are
+		// either one-time/per-request tokens (e.g. _wpnonce) or non-idempotent
+		// actions (add to cart, AJAX). Caching them is both wasteful (a new cache
+		// variation per value) and incorrect — a cached page could serve one user's
+		// nonce to another. The list is filterable for site-specific additions.
+		$bypass_query_params = apply_filters( 'ezcache_bypass_query_params', [
+			'_wpnonce', 'wc-ajax', 'add-to-cart', 'remove_item', 'removed_item',
+			'action', 'doing_wp_cron', 'add_to_wishlist',
+		] );
+		foreach ( $bypass_query_params as $param ) {
+			if ( isset( $_GET[ $param ] ) ) {
+				return false;
+			}
+		}
+
 		if ( get_post_meta( get_the_ID(), '_ezcache_do_not_cache_post', true ) ) {
 			return false;
 		}
@@ -382,9 +397,17 @@ class Cache {
 			foreach ( $rejected_uris as $url ) {
 				$url = str_replace( $domain, '', $url );
 				$url = '/' . trim( $url, '/' );
-				$url = str_replace( [ '\/*', '*' ], [ '\/?.*?', '.*?' ], preg_quote( $url, '/' ) );
-				$url = str_replace( '\/\.*?', '\/.*?', $url );
-				if ( @preg_match( "/^{$url}\/?$/u", urldecode( $_SERVER['REQUEST_URI'] ) ) ) {
+				// Build the wildcard pattern by escaping each literal segment and
+				// joining the segments with `.*?`. This has to be done around
+				// preg_quote(), not after it: running preg_quote() first turns every
+				// `*` into `\*`, so a later str_replace('*', '.*?') corrupts it into
+				// `\.*?` (zero-or-more literal dots) and the wildcard silently never
+				// matches — which broke every pattern with a trailing or mid `*`.
+				$regex = implode( '.*?', array_map(
+					function ( $part ) { return preg_quote( $part, '/' ); },
+					explode( '*', $url )
+				) );
+				if ( @preg_match( "/^{$regex}\/?$/u", urldecode( $_SERVER['REQUEST_URI'] ) ) ) {
 					return false;
 				}
 			}
