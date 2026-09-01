@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.6.4
+Stable tag: 2.6.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,10 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.6.5 =
+* Fixed: The DNS Prefetch and Preconnect fields are no longer replaced with "true"/"false". They are domain-list text fields but were being cast to a boolean when the Performance screen loaded, which overwrote the saved domains.
+* Fixed: Combining Google Fonts no longer drops the font-display value. The combined request now uses font-display: swap by default (Google's recommendation), preserving fast text rendering (FCP/LCP). Filterable via ezcache_google_fonts_display.
 
 = 2.6.4 =
 * Fixed: URL exclusions (Rejected URIs) with a wildcard (*) at the end or in the middle of the pattern now work correctly. Previously only a wildcard directly after a slash matched, so patterns like *add_to_wishlist* silently failed with no error.

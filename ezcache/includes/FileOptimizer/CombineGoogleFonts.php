@@ -98,6 +98,13 @@ class CombineGoogleFonts extends BaseFileOptimizer {
 	 * @return string
 	 */
 	protected function get_combine_tag() {
-		return '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=' . $this->fonts . $this->subsets . '" />';
+		// Keep font-display when combining. Omitting it makes Google default to
+		// "auto" (≈ block), losing the font-display: swap set elsewhere (e.g.
+		// Elementor) and hurting text FCP/LCP. Defaults to Google's recommended
+		// "swap"; filterable for sites that need a different policy.
+		$display = apply_filters( 'ezcache_google_fonts_display', 'swap' );
+		$display = in_array( $display, [ 'auto', 'block', 'swap', 'fallback', 'optional' ], true ) ? $display : 'swap';
+
+		return '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=' . $this->fonts . $this->subsets . '&display=' . $display . '" />';
 	}
 }

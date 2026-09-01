@@ -58,7 +58,10 @@ class PerformanceController {
 		$bool_keys = [
 			'enable_preload', 'preload_on_cache_clear', 'preload_crawl_homepage_links',
 			'lazy_load_images', 'lazy_load_iframes', 'defer_js', 'remove_query_strings',
-			'dns_prefetch', 'preconnect', 'heartbeat_control', 'cdn_enabled',
+			// NOTE: dns_prefetch and preconnect are multi-line TEXT fields (domain
+			// lists), not booleans — casting them here turned the textarea into
+			// "true"/"false". They are intentionally excluded.
+			'heartbeat_control', 'cdn_enabled',
 			'db_cleanup_revisions', 'db_cleanup_auto_drafts', 'db_cleanup_trashed_posts',
 			'db_cleanup_spam_comments', 'db_cleanup_trashed_comments', 'db_cleanup_expired_transients',
 			'db_cleanup_orphan_postmeta', 'db_optimize_tables',
