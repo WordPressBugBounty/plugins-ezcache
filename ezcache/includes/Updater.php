@@ -19,7 +19,10 @@ class Updater {
 	public static function uninstall() {
 		global $wpdb;
 
-		Cache::instance()->clear_cache( true );
+		$cache = Cache::instance();
+		$cache->clear_cache( true );
+		// No cron will run once the plugin is gone: delete what was moved aside now.
+		$cache->purge_trash( 300 );
 		$wpdb->query("DROP TABLE IF EXISTS `{$wpdb->prefix}ezcache_webp_images`");
 		delete_option( 'ezcache_version' );
 	}
@@ -53,6 +56,10 @@ class Updater {
 				self::update_2_0();
 			}
 
+			if ( version_compare( self::$current_version, '2.6.6', '<' ) ) {
+				self::update_2_6_6();
+			}
+
 			// Always verify the required tables exist and are up to date. This is
 			// intentionally NOT gated behind a version match: updates deployed by
 			// replacing files (no deactivate/activate cycle) never fire the activation
@@ -60,16 +67,26 @@ class Updater {
 			// self-heal on the next run instead of staying broken forever.
 			self::verify_tables();
 
+			// Record the new version BEFORE flushing the page cache. The flush is
+			// best-effort and must never keep the upgrade from completing: on a
+			// cache with 1.28 million entries the old synchronous delete never
+			// finished, the version was never recorded, and every admin request
+			// re-ran the whole routine until the site went down.
+			$version_changed = version_compare( (string) self::$current_version, EZCACHE_VERSION, '!=' );
+			update_option( 'ezcache_version', EZCACHE_VERSION );
+
 			// A plugin update can change generated markup/minification, so flush the
 			// page cache once per version change. This ensures stale or corrupted
 			// cached pages (e.g. JSON-LD altered by an older inline-JS minifier) are
 			// regenerated on the next request instead of persisting until TTL expiry.
-			if ( version_compare( (string) self::$current_version, EZCACHE_VERSION, '!=' ) && class_exists( '\\Upress\\EzCache\\Cache' ) ) {
-				Cache::instance()->clear_cache();
+			// clear_cache() moves the old files aside and deletes them in the background.
+			if ( $version_changed && class_exists( '\\Upress\\EzCache\\Cache' ) ) {
+				try {
+					Cache::instance()->clear_cache();
+				} catch ( \Throwable $e ) {
+					Logger::log( 'ezCache: cache flush after upgrade failed: ' . $e->getMessage() );
+				}
 			}
-
-			// make sure we update the version in the database so we can run upgrades at later times
-			update_option( 'ezcache_version', EZCACHE_VERSION );
 		} catch ( Exception $ex ) {
 			Logger::log( 'ezCache Updater Error: ' . $ex );
 			wp_die( $ex->getMessage() );
@@ -193,6 +210,27 @@ class Updater {
 		}
 	}
 
+
+	/**
+	 * Update to 2.6.6: the default list of ignored tracking parameters grew
+	 * (srsltid, gad_source, ttclid and others). Sites still on the previous
+	 * default list, or with an empty list, get the new default; a customized
+	 * list is left alone.
+	 */
+	protected static function update_2_6_6() {
+		$settings    = Settings::get_settings();
+		$old_default = "gclid\ngbraid\nwbraid\nfbclid\nmsclkid\ndclid\nyclid\ntwclid\nutm_*\nmc_cid\nmc_eid\n_ga\n_gl";
+		$current     = isset( $settings->ignored_query_params_list ) ? (string) $settings->ignored_query_params_list : '';
+		$normalize   = function ( $list ) {
+			return implode( "\n", preg_split( '/[\s,]+/', strtolower( trim( $list ) ), -1, PREG_SPLIT_NO_EMPTY ) );
+		};
+
+		if ( '' === trim( $current ) || $normalize( $current ) === $normalize( $old_default ) ) {
+			Settings::set_settings( [
+				'ignored_query_params_list' => Settings::get_default_settings()->ignored_query_params_list,
+			] );
+		}
+	}
 
 	protected static function update_2_0() {
 		global $wpdb;

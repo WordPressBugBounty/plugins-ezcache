@@ -24,6 +24,7 @@ class SettingsController {
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
 		'enable_varnish_purge',
 		'ignore_query_params', 'ignored_query_params_list',
+		'no_cache_filtered_pages', 'max_cache_url_depth', 'max_cache_url_length',
 		'bypass_cache', 'rejected_uri', 'rejected_user_agent', 'rejected_cookies',
 		'excluded_minify_files',
 	];
@@ -40,15 +41,17 @@ class SettingsController {
 		'enable_webp_support',
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
 		'enable_varnish_purge',
-		'ignore_query_params',
+		'ignore_query_params', 'no_cache_filtered_pages',
 	];
 
 	/**
 	 * Integer settings keys with [min, max] ranges
 	 */
 	private static $integer_keys = [
-		'cache_lifetime'       => [ 0, 31536000 ],
+		'cache_lifetime'        => [ 0, 31536000 ],
 		'cache_expiry_interval' => [ 60, 86400 ],
+		'max_cache_url_depth'   => [ 0, 50 ],
+		'max_cache_url_length'  => [ 0, 4000 ],
 	];
 
 	function show() {

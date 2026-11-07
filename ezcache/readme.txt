@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.6.5
+Stable tag: 2.6.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,18 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.6.7 =
+* Fixed: Clearing the cache no longer blocks the request until every file is gone. The old cache is moved aside instantly and deleted in the background in small batches (WP-Cron event ezcache_purge_trash). On a site with 1.28 million cached pages the previous synchronous delete ran for minutes, and when triggered by a plugin update it re-ran on every admin page load and took the site down.
+* Fixed: A plugin update now records the new version before flushing the cache, so a slow or failed flush can never make the upgrade routine repeat itself.
+* Fixed: Recursive deletion streams the directory tree instead of loading the whole listing into memory.
+* Fixed: WooCommerce account pages and endpoints (My Account, order-pay, order-received, lost-password and similar) are no longer cached. A cached login form carries a nonce that expires, which broke logging in.
+
+= 2.6.6 =
+* Added: Filtered product and archive pages (WooCommerce layered navigation, Filter Everything, WOOF, YITH and similar) are no longer cached by default. Every filter combination is a different URL and crawlers walk through all of them; on one site this created 1.27 million cache directories in three days and filled the server's disk. The option can be turned off on the Settings page, and the detection is filterable via ezcache_is_filtered_request and ezcache_filter_query_params.
+* Added: Pages with very deep or very long URLs are no longer cached (by default more than 7 path segments or 250 characters). Both limits are configurable on the Settings page; 0 disables a limit.
+* Changed: Tracking parameters are now ignored by default when building the cache key, so visitors arriving with ?gclid=..., ?srsltid=... or ?utm_... are served the clean page from cache instead of each click creating a new cache file. The default list now also covers srsltid, gad_source, gad_campaignid, ttclid, igshid, _hsenc, _hsmi and mkt_tok. Sites still on the previous default list are moved to the new one; a customized list is left untouched.
+* Changed: With "Don't cache pages where the URLs contain parameters" enabled, a request whose only parameters are ignored tracking parameters now counts as the clean URL and is served from cache.
 
 = 2.6.5 =
 * Fixed: The DNS Prefetch and Preconnect fields are no longer replaced with "true"/"false". They are domain-list text fields but were being cast to a boolean when the Performance screen loaded, which overwrote the saved domains.

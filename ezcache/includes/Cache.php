@@ -20,6 +20,11 @@ use Upress\EzCache\Utilities\Logger;
 use Upress\EzCache\PremiumFeatures;
 
 class Cache {
+	/** Directory under the cache root holding caches moved aside for background deletion. */
+	const TRASH_DIR = '.trash';
+	/** WP-Cron hook that deletes the contents of TRASH_DIR in batches. */
+	const PURGE_HOOK = 'ezcache_purge_trash';
+
 	protected static $instance;
 	protected $settings;
 	protected $cache_start_time;
@@ -246,7 +251,7 @@ class Cache {
 		if (
 			(
 				$settings->no_cache_query_params
-				&& ! empty( $_GET )
+				&& $this->has_query_params()
 				&& ! (
 					isset( $_GET['utm_source'], $_GET['utm_medium'], $_GET['utm_campaign'] )
 					|| isset( $_GET['utm_expid'] )
@@ -344,6 +349,30 @@ class Cache {
 			return false;
 		}
 		if ( function_exists( 'is_cart' ) && is_cart() ) {
+			return false;
+		}
+		// WooCommerce account pages and endpoints (my-account, order-pay,
+		// order-received, lost-password...) are per-user and carry nonces: a
+		// cached login form served for days breaks logging in.
+		if ( function_exists( 'is_account_page' ) && is_account_page() ) {
+			return false;
+		}
+		if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url() ) {
+			return false;
+		}
+
+		// Filtered archives (WooCommerce layered nav, Filter Everything, WOOF,
+		// YITH and similar). Every filter combination is a distinct URL and
+		// crawlers walk through them without end: on one site this produced
+		// 1.27 million cache directories in three days and filled the server's
+		// disk. Such pages are rendered live unless the site opts in.
+		if ( ! empty( $settings->no_cache_filtered_pages ) && $this->is_filtered_request() ) {
+			return false;
+		}
+
+		// Unusually deep or long paths are almost always generated (filter
+		// combinations, crawler artefacts) rather than real pages.
+		if ( $this->url_exceeds_cache_limits() ) {
 			return false;
 		}
 
@@ -802,6 +831,114 @@ class Cache {
 	}
 
 	/**
+	 * Whether the request carries query-string parameters that matter for
+	 * caching. With ignore_query_params on, a request whose parameters are all
+	 * on the ignore list (?gclid=..., ?srsltid=...) counts as having none, so
+	 * it is served from, and saved to, the clean page's cache entry.
+	 *
+	 * @return bool
+	 */
+	private function has_query_params() {
+		if ( empty( $_GET ) ) {
+			return false;
+		}
+		if ( empty( $this->settings->ignore_query_params ) ) {
+			return true;
+		}
+		$query_string = isset( $_SERVER['QUERY_STRING'] ) ? (string) $_SERVER['QUERY_STRING'] : '';
+		if ( '' === $query_string ) {
+			// $_GET filled without a query string (rewrite rules): keep the old behaviour.
+			return true;
+		}
+
+		return '' !== $this->normalize_query_string( $query_string );
+	}
+
+	/**
+	 * Whether the current request is a filtered archive: a shop or archive page
+	 * with one or more product/post filters applied. Detected through the
+	 * filter plugins' own APIs when they are present, plus the query
+	 * parameters the common filter plugins use. The result is filterable via
+	 * ezcache_is_filtered_request; the parameter list via
+	 * ezcache_filter_query_params (exact names, or a trailing * for a prefix).
+	 *
+	 * @return bool
+	 */
+	public function is_filtered_request() {
+		$filtered = false;
+
+		try {
+			// WooCommerce layered nav, price and rating filters. Filter plugins
+			// built on WooCommerce (YITH, WOOF and others) report through the
+			// same woocommerce_is_filtered hook.
+			if ( function_exists( 'is_filtered' ) && is_filtered() ) {
+				$filtered = true;
+			}
+
+			// Filter Everything (free and Pro): its filters travel as path
+			// segments, so only the plugin itself knows the request is filtered.
+			if ( ! $filtered && function_exists( 'flrt_is_filter_request' ) && flrt_is_filter_request() ) {
+				$filtered = true;
+			}
+		} catch ( \Throwable $e ) {
+			Logger::log( 'ezCache filter detection failed: ' . $e->getMessage() );
+		}
+
+		if ( ! $filtered && ! empty( $_GET ) ) {
+			$params = apply_filters( 'ezcache_filter_query_params', [
+				'swoof', 'yith_wcan', 'filters', 'min_price', 'max_price', 'rating_filter',
+				'filter_*', 'query_type_*', 'wpf_*', 'awf_*',
+			] );
+			$params = array_map( 'strtolower', array_filter( (array) $params, 'is_string' ) );
+			foreach ( array_keys( $_GET ) as $key ) {
+				if ( $this->query_param_is_ignored( strtolower( (string) $key ), $params ) ) {
+					$filtered = true;
+					break;
+				}
+			}
+		}
+
+		return (bool) apply_filters( 'ezcache_is_filtered_request', $filtered );
+	}
+
+	/**
+	 * Whether the request path is deeper than max_cache_url_depth segments or
+	 * longer than max_cache_url_length characters (measured on the decoded
+	 * path, so non-Latin URLs are not penalised for their percent-encoding).
+	 * A limit of 0 disables that check.
+	 *
+	 * @return bool
+	 */
+	public function url_exceeds_cache_limits() {
+		$settings   = $this->settings;
+		$max_depth  = isset( $settings->max_cache_url_depth ) ? (int) $settings->max_cache_url_depth : 0;
+		$max_length = isset( $settings->max_cache_url_length ) ? (int) $settings->max_cache_url_length : 0;
+		if ( $max_depth <= 0 && $max_length <= 0 ) {
+			return false;
+		}
+
+		$path = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '/';
+		$pos  = strpos( $path, '?' );
+		if ( false !== $pos ) {
+			$path = substr( $path, 0, $pos );
+		}
+		$path = rawurldecode( $path );
+
+		if ( $max_length > 0 ) {
+			$length = function_exists( 'mb_strlen' ) ? mb_strlen( $path, 'UTF-8' ) : strlen( $path );
+			if ( $length > $max_length ) {
+				return true;
+			}
+		}
+
+		if ( $max_depth > 0 && count( array_filter( explode( '/', $path ), 'strlen' ) ) > $max_depth ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Build the full-page (Redis) cache URL for the current request, applying
 	 * the same query-string normalization used for the disk cache key.
 	 *
@@ -1134,21 +1271,122 @@ class Cache {
 	 *
 	 * @param string $path
 	 */
-	public function rmdir_recursive( $path ) {
+	public function rmdir_recursive( $path, $deadline = 0 ) {
+		// Streams the tree instead of loading it into memory: glob() on a
+		// directory with over a million entries exhausted PHP's memory and hung
+		// admin requests. With a deadline (a microtime(true) value) the work
+		// stops once it passes and false is returned; call again to continue.
 		if ( ! file_exists( $path ) ) {
+			return true;
+		}
+		if ( ! is_dir( $path ) || is_link( $path ) ) {
+			return @unlink( $path );
+		}
+
+		try {
+			$iterator = new RecursiveIteratorIterator(
+				new RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ),
+				RecursiveIteratorIterator::CHILD_FIRST
+			);
+			$count = 0;
+			foreach ( $iterator as $entry ) {
+				if ( $entry->isDir() && ! $entry->isLink() ) {
+					@rmdir( $entry->getPathname() );
+				} else {
+					@unlink( $entry->getPathname() );
+				}
+				if ( $deadline && ( ++$count % 200 ) === 0 && microtime( true ) > $deadline ) {
+					return false;
+				}
+			}
+		} catch ( \Throwable $e ) {
+			Logger::log( 'ezCache could not delete ' . $path . ': ' . $e->getMessage() );
+
+			return false;
+		}
+
+		@rmdir( $path );
+
+		return ! file_exists( $path );
+	}
+
+	/**
+	 * Empty the cache without waiting for the files to go. Every host
+	 * directory under the cache root is renamed into .trash/ (instant, same
+	 * filesystem) and the renamed copies are deleted afterwards in bounded
+	 * batches: a little now, the rest from the ezcache_purge_trash cron
+	 * event. The previous synchronous delete took minutes on large caches
+	 * and, run from the upgrade routine, took whole sites down.
+	 *
+	 * Loose files directly under the root (the dev-mode flag) are kept.
+	 *
+	 * @param float $purge_budget Seconds to spend deleting right away.
+	 */
+	public function discard_cache_contents( $purge_budget = 5 ) {
+		$root = $this->root_cache_dir;
+		if ( ! is_dir( $root ) ) {
 			return;
 		}
 
-		$files = glob( $path . '/*' );
-		foreach ( $files as $file ) {
-			if ( file_exists( $file ) && is_dir( $file ) ) {
-				$this->rmdir_recursive( $file );
-			} elseif ( file_exists( $file ) ) {
-				unlink( $file );
+		$trash = $root . self::TRASH_DIR;
+		foreach ( (array) glob( $root . '*', GLOB_ONLYDIR ) as $dir ) { // dot-directories such as .trash are not matched
+			if ( ! is_dir( $trash ) ) {
+				@mkdir( $trash, 0755, true );
+			}
+			$target = $trash . '/' . basename( $dir ) . '.' . time() . '.' . mt_rand( 1000, 9999 );
+			if ( ! is_dir( $trash ) || ! @rename( $dir, $target ) ) {
+				// Cannot move it aside: delete in place, still within a budget.
+				Logger::log( 'ezCache could not move ' . $dir . ' aside, deleting in place' );
+				$this->rmdir_recursive( $dir, microtime( true ) + max( 1, (float) $purge_budget ) );
 			}
 		}
 
-		rmdir( $path );
+		if ( $purge_budget > 0 ) {
+			$this->purge_trash( $purge_budget );
+		} elseif ( is_dir( $trash ) ) {
+			$this->schedule_purge();
+		}
+	}
+
+	/**
+	 * Delete what discard_cache_contents() moved into .trash/, for at most
+	 * $budget seconds. Hooked to the ezcache_purge_trash cron event and also
+	 * run by the expiry cron, so leftovers go even if a single event is lost.
+	 * Reschedules itself while anything remains.
+	 *
+	 * @param float $budget Seconds.
+	 *
+	 * @return bool true when the trash is empty.
+	 */
+	public function purge_trash( $budget = 20 ) {
+		$trash = $this->root_cache_dir . self::TRASH_DIR;
+		if ( ! is_dir( $trash ) ) {
+			return true;
+		}
+
+		$deadline = microtime( true ) + max( 0.1, (float) $budget );
+		foreach ( (array) glob( $trash . '/*' ) as $entry ) {
+			if ( ! $this->rmdir_recursive( $entry, $deadline ) ) {
+				$this->schedule_purge();
+
+				return false;
+			}
+		}
+		@rmdir( $trash );
+
+		return ! is_dir( $trash );
+	}
+
+	/**
+	 * Make sure a purge run is scheduled (WP-Cron single event).
+	 */
+	public function schedule_purge() {
+		if ( ! function_exists( 'wp_next_scheduled' ) || ! function_exists( 'wp_schedule_single_event' ) ) {
+			return;
+		}
+		if ( ! wp_next_scheduled( self::PURGE_HOOK ) ) {
+			wp_schedule_single_event( time() + 30, self::PURGE_HOOK );
+		}
 	}
 
 	/**
@@ -1212,7 +1450,7 @@ class Cache {
 	 * @param bool $clear_webp Should deleting cache clear the WebP images
 	 */
 	public function clear_cache( $clear_webp = false ) {
-		$this->rmdir_recursive( $this->root_cache_dir );
+		$this->discard_cache_contents();
 		@wp_mkdir_p( $this->root_cache_dir );
 
 		if ( $clear_webp ) {
@@ -1349,9 +1587,17 @@ class Cache {
 	public function clear_expired_cache() {
 		$settings = $this->settings;
 
+		// First finish any background deletion left by clear_cache(), then
+		// walk the live cache only (.trash is skipped).
+		$this->purge_trash( 20 );
+		$trash = $this->root_cache_dir . self::TRASH_DIR;
+
 		try {
-			$dir      = new RecursiveDirectoryIterator( $this->root_cache_dir );
-			$iterator = new RecursiveIteratorIterator( $dir );
+			$dir      = new RecursiveDirectoryIterator( $this->root_cache_dir, \FilesystemIterator::SKIP_DOTS );
+			$live     = new \RecursiveCallbackFilterIterator( $dir, function ( $current ) use ( $trash ) {
+				return $current->getPathname() !== $trash;
+			} );
+			$iterator = new RecursiveIteratorIterator( $live );
 			$files    = new RegexIterator( $iterator, '/^.+\.(?:gz|html|js|css)$/i', RegexIterator::GET_MATCH );
 		} catch ( UnexpectedValueException $ex ) {
 			if ( strpos( $ex->getMessage(), 'No such file or directory' ) ) {

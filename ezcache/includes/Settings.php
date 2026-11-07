@@ -39,8 +39,14 @@ class Settings {
 		    'enable_webp_support'     => false,
 
 		    'no_cache_query_params'         => false,
-		    'ignore_query_params'           => false,
-		    'ignored_query_params_list'     => "gclid\ngbraid\nwbraid\nfbclid\nmsclkid\ndclid\nyclid\ntwclid\nutm_*\nmc_cid\nmc_eid\n_ga\n_gl",
+		    'ignore_query_params'           => true,
+		    'ignored_query_params_list'     => "gclid\ngbraid\nwbraid\ngad_source\ngad_campaignid\nsrsltid\nfbclid\nmsclkid\ndclid\nyclid\nttclid\ntwclid\nigshid\nutm_*\nmc_cid\nmc_eid\n_ga\n_gl\n_hsenc\n_hsmi\nmkt_tok",
+
+		    // Cache bloat guards (2.6.6+): filtered archives and very deep/long
+		    // URLs are generated in endless combinations and are not cached.
+		    'no_cache_filtered_pages'       => true,
+		    'max_cache_url_depth'           => 7,
+		    'max_cache_url_length'          => 250,
 		    'cache_clear_on_post_edit'      => true,
 		    'cache_clear_home_on_post_edit' => true,
 		    'enable_varnish_purge'          => true,

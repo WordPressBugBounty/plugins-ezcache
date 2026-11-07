@@ -3,7 +3,7 @@
 	Plugin Name: ezCache
 	Description: 🚀 ezCache 2026 — Lightning-fast WordPress caching with CSS/JS optimization, WebP images, preloading, database cleanup &amp; more. Free &amp; Pro.
 	Plugin URI: https://ezcache-wp.com
-	Version: 2.6.5
+	Version: 2.6.7
 	Author: uPress
 	Author URI: https://www.upress.io
 	Text Domain: ezcache
@@ -36,7 +36,7 @@ namespace {
 	define( 'EZCACHE_FILE', __FILE__ );
 	define( 'EZCACHE_URL', plugin_dir_url( __FILE__ ) );
 	define( 'EZCACHE_BASEBANE', basename( __FILE__ ) );
-	define( 'EZCACHE_VERSION', '2.6.5' );
+	define( 'EZCACHE_VERSION', '2.6.7' );
 	define( 'EZCACHE_SETTINGS_KEY', 'ezcache' );
 
 	register_activation_hook( EZCACHE_FILE, 'upress_ezcache_activation_hook' );
@@ -127,6 +127,8 @@ namespace Upress\EzCache {
 			CriticalCSS::instance()->register();
 
 			add_action( 'ezcache_clear_expired_cache', [ $this->ezcache, 'clear_expired_cache' ] );
+			// Background deletion of caches that clear_cache() moved aside.
+			add_action( Cache::PURGE_HOOK, [ $this->ezcache, 'purge_trash' ] );
 			add_action( 'ezcache_db_cleanup', function () {
 				( new DatabaseOptimizer() )->clean();
 			} );
