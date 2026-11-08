@@ -26,6 +26,7 @@ class RestApi {
 		$this->get(    '/performance',         '\Upress\EzCache\Rest\PerformanceController@show' );
 		$this->post(   '/performance',         '\Upress\EzCache\Rest\PerformanceController@update' );
 		$this->post(   '/performance/preload', '\Upress\EzCache\Rest\PerformanceController@runPreload' );
+		$this->post(   '/performance/preload/resume', '\Upress\EzCache\Rest\PerformanceController@resumePreload' );
 		$this->delete( '/performance/preload', '\Upress\EzCache\Rest\PerformanceController@stopPreload' );
 		$this->post(   '/performance/db-cleanup', '\Upress\EzCache\Rest\PerformanceController@runDbCleanup' );
 

@@ -54,6 +54,74 @@ class Preload {
 		// Trigger preload after cache is cleared (full or partial).
 		add_action( 'ezcache_after_clear_cache', [ $this, 'maybe_start_preload' ], 10, 0 );
 		add_action( 'ezcache_after_clear_cache_single', [ $this, 'enqueue_post_url' ], 10, 1 );
+
+		// A run whose processor event went missing (older versions dropped it
+		// when the preload toggle was off) picks up again on the next admin visit.
+		add_action( 'admin_init', [ $this, 'maybe_resume_stalled' ] );
+	}
+
+	/**
+	 * Make sure the queue processor is scheduled, whatever the preload toggle
+	 * says. Used while a run is in progress: a run started by hand must finish
+	 * even when automatic preloading is off. The processor unschedules itself
+	 * once the queue is empty (see process_queue()).
+	 */
+	public function ensure_cron() {
+		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
+			wp_schedule_event( time() + 30, self::CRON_INTERVAL, self::CRON_HOOK );
+		}
+	}
+
+	/**
+	 * Whether URLs are still waiting in the queue.
+	 *
+	 * @return bool
+	 */
+	public function has_pending_queue() {
+		$queue = get_option( self::QUEUE_OPTION, [] );
+
+		return is_array( $queue ) && ! empty( $queue );
+	}
+
+	/**
+	 * Re-arm the processor for a run that is marked running but has no cron
+	 * event. Cheap on purpose: the cron check reads an autoloaded option and
+	 * the state is read only when the event is missing.
+	 */
+	public function maybe_resume_stalled() {
+		if ( wp_next_scheduled( self::CRON_HOOK ) ) {
+			return;
+		}
+		$state = get_option( self::STATE_OPTION, [] );
+		if ( is_array( $state ) && isset( $state['status'] ) && 'running' === $state['status'] && $this->has_pending_queue() ) {
+			$this->ensure_cron();
+			// Count the re-arm as activity, so the status reads "running" rather
+			// than "stalled" during the minute before the first batch completes.
+			$state['last_batch'] = time();
+			update_option( self::STATE_OPTION, $state, false );
+		}
+	}
+
+	/**
+	 * Continue a stalled or interrupted run from where it stopped: re-arm the
+	 * processor and handle one batch right away so the user sees movement.
+	 *
+	 * @return array Status data.
+	 */
+	public function resume() {
+		if ( $this->has_pending_queue() ) {
+			$state = get_option( self::STATE_OPTION, [] );
+			if ( ! is_array( $state ) ) {
+				$state = [];
+			}
+			$state['status'] = 'running';
+			update_option( self::STATE_OPTION, $state, false );
+
+			$this->ensure_cron();
+			$this->process_queue();
+		}
+
+		return $this->get_status();
 	}
 
 	/**
@@ -78,10 +146,14 @@ class Preload {
 	 */
 	public function maybe_schedule_cron() {
 		if ( ! empty( $this->settings->enable_preload ) ) {
-			if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-				wp_schedule_event( time() + 30, self::CRON_INTERVAL, self::CRON_HOOK );
-			}
+			$this->ensure_cron();
 		} else {
+			// Automatic preloading is off. Keep the processor while a run is
+			// still in progress (saving settings must not kill a running
+			// preload); it unschedules itself once the queue is empty.
+			if ( $this->has_pending_queue() ) {
+				return;
+			}
 			$timestamp = wp_next_scheduled( self::CRON_HOOK );
 			if ( $timestamp ) {
 				wp_unschedule_event( $timestamp, self::CRON_HOOK );
@@ -118,14 +190,18 @@ class Preload {
 		update_option( self::QUEUE_OPTION, array_values( $urls ), false );
 		update_option( self::PROCESSED_OPTION, [], false );
 		update_option( self::STATE_OPTION, [
-			'status'    => 'running',
-			'total'     => count( $urls ),
-			'processed' => 0,
-			'started'   => time(),
-			'finished'  => 0,
+			'status'     => 'running',
+			'total'      => count( $urls ),
+			'processed'  => 0,
+			'started'    => time(),
+			'finished'   => 0,
+			'last_batch' => 0,
 		], false );
 
-		$this->maybe_schedule_cron();
+		// A run started by hand must complete even when the preload toggle is
+		// off. Before 2.6.8 the processor was only scheduled with the toggle
+		// on, so "Run preload" did one batch and then silently stalled.
+		$this->ensure_cron();
 
 		// Run an immediate first batch so the user sees movement quickly.
 		if ( ! defined( 'EZCACHE_PRELOAD_NO_IMMEDIATE' ) || ! EZCACHE_PRELOAD_NO_IMMEDIATE ) {
@@ -175,8 +251,19 @@ class Preload {
 		];
 		$state = array_merge( $defaults, is_array( $state ) ? $state : [] );
 
-		$state['remaining'] = is_array( $queue ) ? count( $queue ) : 0;
-		$state['enabled']   = ! empty( $this->settings->enable_preload );
+		$state['remaining']  = is_array( $queue ) ? count( $queue ) : 0;
+		$state['enabled']    = ! empty( $this->settings->enable_preload );
+		$state['scheduled']  = (bool) wp_next_scheduled( self::CRON_HOOK );
+		$state['last_batch'] = isset( $state['last_batch'] ) ? (int) $state['last_batch'] : 0;
+
+		// A run is stalled when URLs are waiting but nothing will process them:
+		// no cron event, or no batch for a long while (a batch is at most
+		// 2 x 30 s per URL; the processor runs every minute).
+		$last_activity     = max( (int) $state['last_batch'], (int) $state['started'] );
+		$stalled_after     = (int) apply_filters( 'ezcache_preload_stalled_after', 10 * MINUTE_IN_SECONDS );
+		$state['stalled']  = 'running' === $state['status']
+			&& $state['remaining'] > 0
+			&& ( ! $state['scheduled'] || ( $last_activity > 0 && time() - $last_activity > $stalled_after ) );
 
 		return $state;
 	}
@@ -247,6 +334,9 @@ class Preload {
 				$state['finished'] = time();
 				update_option( self::STATE_OPTION, $state, false );
 			}
+			// Nothing left: with automatic preloading off, the processor is no
+			// longer needed and unschedules itself.
+			$this->maybe_schedule_cron();
 			return;
 		}
 
@@ -278,12 +368,17 @@ class Preload {
 		if ( ! is_array( $state ) ) {
 			$state = [];
 		}
-		$state['processed'] = ( isset( $state['processed'] ) ? (int) $state['processed'] : 0 ) + count( $batch );
-		$state['status']    = empty( $queue ) ? 'completed' : 'running';
+		$state['processed']  = ( isset( $state['processed'] ) ? (int) $state['processed'] : 0 ) + count( $batch );
+		$state['last_batch'] = time();
+		$state['status']     = empty( $queue ) ? 'completed' : 'running';
 		if ( 'completed' === $state['status'] ) {
 			$state['finished'] = time();
 		}
 		update_option( self::STATE_OPTION, $state, false );
+
+		if ( 'completed' === $state['status'] ) {
+			$this->maybe_schedule_cron(); // drops the processor when automatic preloading is off
+		}
 	}
 
 	/**

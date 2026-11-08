@@ -126,6 +126,18 @@ class PerformanceController {
 	}
 
 	/**
+	 * Resume a stalled or interrupted preload from where it stopped
+	 */
+	function resumePreload() {
+		$status = [];
+		if ( class_exists( '\Upress\EzCache\Preload' ) ) {
+			$status = Preload::instance()->resume();
+		}
+
+		return wp_send_json_success( [ 'message' => 'Preload resumed', 'preload_status' => $status ] );
+	}
+
+	/**
 	 * Stop preload
 	 */
 	function stopPreload() {
