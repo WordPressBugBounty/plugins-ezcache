@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.6.8
+Stable tag: 2.6.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -43,6 +43,9 @@ ezCache is the most complete WordPress performance optimization plugin. From pag
 3. All features are enabled automatically — 7-day Pro trial included!
 
 == Changelog ==
+
+= 2.6.9 =
+* Fixed: A cache folder that cannot be deleted (for example files written by WP-CLI running as root) no longer blocks the background cleanup added in 2.6.7. The cleanup stopped at the first such folder, left every cache cleared after it on disk and retried every 30 seconds without making progress. It now skips what it cannot delete, removes everything else, logs what was left behind and tries the leftovers again on the next cache clear.
 
 = 2.6.8 =
 * Fixed: "Run preload" no longer stalls after the first batch when the "Enable preload" setting is off. The run was started, processed 5 pages and then stopped silently, because the background processor was only scheduled when the setting was on; the status still showed "running". A run started by hand now always completes, and saving settings no longer cancels a run in progress.

@@ -1352,7 +1352,9 @@ class Cache {
 	 * Delete what discard_cache_contents() moved into .trash/, for at most
 	 * $budget seconds. Hooked to the ezcache_purge_trash cron event and also
 	 * run by the expiry cron, so leftovers go even if a single event is lost.
-	 * Reschedules itself while anything remains.
+	 * Reschedules itself when the budget runs out with work left. Entries
+	 * that cannot be deleted are skipped (and retried by later runs) so they
+	 * never hold up the rest of the trash.
 	 *
 	 * @param float $budget Seconds.
 	 *
@@ -1365,13 +1367,31 @@ class Cache {
 		}
 
 		$deadline = microtime( true ) + max( 0.1, (float) $budget );
+		$stuck    = [];
 		foreach ( (array) glob( $trash . '/*' ) as $entry ) {
-			if ( ! $this->rmdir_recursive( $entry, $deadline ) ) {
+			if ( $this->rmdir_recursive( $entry, $deadline ) ) {
+				continue;
+			}
+			if ( microtime( true ) > $deadline ) {
+				// Out of time: the next run continues from here.
 				$this->schedule_purge();
 
 				return false;
 			}
+			// The whole entry was walked but something in it could not be
+			// deleted (for example files owned by another user, written by
+			// WP-CLI running as root). Move on so the rest of the trash still
+			// goes: stopping here blocked every later entry, and rescheduling
+			// for it repeated every 30 seconds without progress.
+			$stuck[] = $entry;
 		}
+
+		if ( $stuck ) {
+			Logger::log( 'ezCache could not fully delete ' . count( $stuck ) . ' item(s) in ' . $trash . ', first: ' . $stuck[0] );
+
+			return false;
+		}
+
 		@rmdir( $trash );
 
 		return ! is_dir( $trash );
