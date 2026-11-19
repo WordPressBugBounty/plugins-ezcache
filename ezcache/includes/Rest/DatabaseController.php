@@ -13,6 +13,6 @@ class DatabaseController {
 		$optimizer = new DatabaseOptimizer();
 		$results   = $optimizer->clean();
 
-		return wp_send_json_success( $results );
+		return Response::success( $results );
 	}
 }

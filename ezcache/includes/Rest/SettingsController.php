@@ -19,12 +19,13 @@ class SettingsController {
 		'minify_html', 'minify_html_comments', 'minify_inline_js', 'minify_inline_css',
 		'minify_js', 'combine_head_js', 'combine_body_js', 'combine_head_inline_js',
 		'combine_body_inline_js', 'minify_css', 'combine_css', 'combine_css_footer',
-		'critical_css', 'enable_webp_support',
+		'critical_css', 'enable_webp_support', 'webp_external_api',
 		// Cache behavior
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
 		'enable_varnish_purge',
 		'ignore_query_params', 'ignored_query_params_list',
 		'no_cache_filtered_pages', 'max_cache_url_depth', 'max_cache_url_length',
+		'strict_response_privacy',
 		'bypass_cache', 'rejected_uri', 'rejected_user_agent', 'rejected_cookies',
 		'excluded_minify_files',
 	];
@@ -38,10 +39,10 @@ class SettingsController {
 		'minify_html', 'minify_html_comments', 'minify_inline_js', 'minify_inline_css',
 		'minify_js', 'combine_head_js', 'combine_body_js', 'combine_head_inline_js',
 		'combine_body_inline_js', 'minify_css', 'combine_css', 'combine_css_footer',
-		'enable_webp_support',
+		'enable_webp_support', 'webp_external_api',
 		'no_cache_query_params', 'cache_clear_on_post_edit', 'cache_clear_home_on_post_edit',
 		'enable_varnish_purge',
-		'ignore_query_params', 'no_cache_filtered_pages',
+		'ignore_query_params', 'no_cache_filtered_pages', 'strict_response_privacy',
 	];
 
 	/**
@@ -57,11 +58,11 @@ class SettingsController {
 	function show() {
 		$settings = Settings::get_settings();
 
-		return wp_send_json_success( $settings );
+		return Response::success( $settings );
 	}
 
 	function update( $request ) {
-		$json             = $request->get_json_params();
+		$json             = (array) $request->get_json_params();
 		$updated_settings = [];
 
 		foreach ( $json as $key => $value ) {
@@ -69,7 +70,7 @@ class SettingsController {
 			if ( ! in_array( $key, self::$allowed_keys, true ) ) {
 				continue;
 			}
-			$updated_settings[ $key ] = self::sanitize_setting( $key, $value );
+			$updated_settings[ $key ] = $value;
 		}
 
 		// Strip premium features for free users
@@ -80,23 +81,25 @@ class SettingsController {
 			}
 		}
 
-		Settings::set_settings( $updated_settings );
+		$saved = Settings::set_settings( $updated_settings );
+		if ( is_wp_error( $saved ) ) { return $saved; }
 
-		return wp_send_json_success( Settings::get_settings() );
+		return Response::success( Settings::get_settings() );
 	}
 
 	function destroy() {
 		$default_settings = (array) Settings::get_default_settings();
-		Settings::set_settings( $default_settings );
+		$saved = Settings::set_settings( $default_settings );
+		if ( is_wp_error( $saved ) ) { return $saved; }
 
-		return wp_send_json_success( Settings::get_settings() );
+		return Response::success( Settings::get_settings() );
 	}
 
 	// ── Dev Mode ──────────────────────────────────────────
 
 	function devModeStatus() {
 		$status = \Upress\EzCache\Cache::get_dev_mode_status();
-		return wp_send_json_success( $status );
+		return Response::success( $status );
 	}
 
 	function enableDevMode( $request ) {
@@ -106,13 +109,13 @@ class SettingsController {
 		} else {
 			$seconds = max( (int) $duration, 3600 );
 		}
-		\Upress\EzCache\Cache::enable_dev_mode( $seconds );
-		return wp_send_json_success( [ 'active' => true, 'message' => 'Development mode enabled' ] );
+		if (!\Upress\EzCache\Cache::enable_dev_mode($seconds)) { return new \WP_Error('dev_mode_write_failed','Could not enable development mode.',['status'=>500]); }
+		return Response::success( [ 'active' => true, 'message' => 'Development mode enabled' ] );
 	}
 
 	function disableDevMode() {
-		\Upress\EzCache\Cache::disable_dev_mode();
-		return wp_send_json_success( [ 'active' => false, 'message' => 'Development mode disabled' ] );
+		if (!\Upress\EzCache\Cache::disable_dev_mode()) { return new \WP_Error('dev_mode_write_failed','Could not disable development mode.',['status'=>500]); }
+		return Response::success( [ 'active' => false, 'message' => 'Development mode disabled' ] );
 	}
 
 	// ── Diagnostics ──────────────────────────────────────
@@ -132,31 +135,38 @@ class SettingsController {
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		return wp_send_json_success( $data );
+		return Response::success( $data );
 	}
 
 	// ── Settings Backup/Restore ──────────────────────────
 
-	private function get_backup_dir() {
+	public function get_backup_dir() {
 		$dir = WP_CONTENT_DIR . '/ezcache-backups';
 		if ( ! is_dir( $dir ) ) {
-			wp_mkdir_p( $dir );
+			// Owned by the site's owner also when a root command line creates it (it is created during the update routine).
+			if ( method_exists( '\Upress\EzCache\Utilities\AtomicFile', 'make_dir' ) ) { \Upress\EzCache\Utilities\AtomicFile::make_dir( $dir ); } else { wp_mkdir_p( $dir ); }
 			file_put_contents( $dir . '/.htaccess', 'Deny from all' );
 			file_put_contents( $dir . '/index.php', '<?php // Silence is golden' );
 		}
-		return $dir;
+        // Migrate legacy public JSON backups to PHP-guarded storage.
+        foreach ( glob( $dir . '/*.json' ) ?: [] as $legacy ) {
+            $raw = @file_get_contents( $legacy );
+            if ( false !== $raw && \Upress\EzCache\Utilities\AtomicFile::write( substr( $legacy, 0, -5 ) . '.php', Settings::FILE_GUARD . $raw ) ) { @unlink( $legacy ); }
+        }
+        return $dir;
 	}
 
 	function listBackups() {
 		$dir = $this->get_backup_dir();
-		$files = glob( $dir . '/*.json' );
+		$files = glob( $dir . '/*.php' ) ?: [];
+        $files = array_filter( $files, function($file) { return basename($file) !== 'index.php'; } );
 		$backups = [];
 
 		foreach ( $files as $file ) {
-			$content = json_decode( file_get_contents( $file ), true );
+			$content = json_decode( substr( file_get_contents( $file ), strlen( Settings::FILE_GUARD ) ), true );
 			$backups[] = [
 				'filename'   => basename( $file ),
-				'name'       => isset( $content['name'] ) ? $content['name'] : basename( $file, '.json' ),
+				'name'       => isset( $content['name'] ) ? $content['name'] : basename( $file, '.php' ),
 				'created_at' => isset( $content['created_at'] ) ? $content['created_at'] : date( 'Y-m-d H:i:s', filemtime( $file ) ),
 				'size'       => filesize( $file ),
 			];
@@ -164,7 +174,7 @@ class SettingsController {
 
 		usort( $backups, function( $a, $b ) { return strcmp( $b['created_at'], $a['created_at'] ); } );
 
-		return wp_send_json_success( $backups );
+		return Response::success( $backups );
 	}
 
 	function createBackup( $request ) {
@@ -183,75 +193,50 @@ class SettingsController {
 		];
 
 		$dir = $this->get_backup_dir();
-		$filename = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) . '-' . date( 'Ymd-His' ) . '.json';
-		file_put_contents( $dir . '/' . $filename, json_encode( $backup, JSON_PRETTY_PRINT ) );
+		$filename = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) . '-' . date( 'Ymd-His' ) . '-' . bin2hex( random_bytes(4) ) . '.php';
+		if ( ! \Upress\EzCache\Utilities\AtomicFile::write( $dir . '/' . $filename, Settings::FILE_GUARD . json_encode( $backup, JSON_PRETTY_PRINT ) ) ) {
+            return new \WP_Error( 'backup_write_failed', 'Could not save backup.', ['status'=>500] );
+        }
 
-		return wp_send_json_success( [
+		return Response::success( [
 			'filename' => $filename,
 			'message'  => 'Backup created: ' . $name,
 		] );
 	}
 
 	function restoreBackup( $request ) {
-		$filename = sanitize_file_name( $request->get_param( 'filename' ) );
+		$value = $request->get_param('filename');
+        $filename = sanitize_file_name(is_string($value) ? $value : '');
 
 		// Handle file upload
 		$upload = $request->get_param( 'settings_json' );
 		if ( ! empty( $upload ) ) {
-			$backup = json_decode( $upload, true );
+			if (!is_string($upload)) { return new \WP_Error('invalid_backup','Invalid backup data.',['status'=>400]); }
+            $backup = json_decode( $upload, true );
 		} else {
 			$dir = $this->get_backup_dir();
-			$filepath = $dir . '/' . $filename;
+			$filename = preg_replace('/\.json$/', '.php', $filename);
+            if ( ! preg_match('/^[a-zA-Z0-9_-]+\.php$/D', $filename) || $filename === 'index.php' ) { return new \WP_Error('invalid_backup', 'Invalid backup filename.', ['status'=>400]); }
+            $filepath = $dir . '/' . $filename;
 
-			if ( ! file_exists( $filepath ) ) {
+			if ( is_link($filepath) || ! is_file( $filepath ) ) {
 				return new \WP_Error( 'not_found', 'Backup file not found', [ 'status' => 404 ] );
 			}
 
-			$backup = json_decode( file_get_contents( $filepath ), true );
+			$backup = json_decode( substr( file_get_contents( $filepath ), strlen( Settings::FILE_GUARD ) ), true );
 		}
 
-		if ( empty( $backup['settings'] ) ) {
+		if ( ! is_array( $backup ) || empty( $backup['settings'] ) || ! is_array( $backup['settings'] ) ) {
 			return new \WP_Error( 'invalid_backup', 'Invalid backup file', [ 'status' => 400 ] );
 		}
 
-		\Upress\EzCache\Settings::set_settings( (array) $backup['settings'] );
+		$saved = Settings::set_settings( (array) $backup['settings'] );
+		if ( is_wp_error( $saved ) ) { return $saved; }
 
-		return wp_send_json_success( [
+		return Response::success( [
 			'message'  => 'Settings restored from: ' . ( $backup['name'] ?? $filename ),
 			'settings' => \Upress\EzCache\Settings::get_settings(),
 		] );
 	}
 
-	/**
-	 * Sanitize a single setting value based on its key
-	 */
-	private static function sanitize_setting( $key, $value ) {
-		// Boolean fields
-		if ( in_array( $key, self::$boolean_keys, true ) ) {
-			return (bool) $value;
-		}
-
-		// Integer fields with range
-		if ( isset( self::$integer_keys[ $key ] ) ) {
-			[ $min, $max ] = self::$integer_keys[ $key ];
-			return max( $min, min( $max, (int) $value ) );
-		}
-
-		// bypass_cache is an associative array of booleans
-		if ( $key === 'bypass_cache' && is_array( $value ) ) {
-			$allowed_bypass = [ 'single', 'pages', 'frontpage', 'home', 'archives', 'tag', 'category', 'feed', 'search', 'author' ];
-			$sanitized = [];
-			foreach ( $allowed_bypass as $bypass_key ) {
-				$sanitized[ $bypass_key ] = isset( $value[ $bypass_key ] ) ? (bool) $value[ $bypass_key ] : false;
-			}
-			return $sanitized;
-		}
-
-		// Text/textarea fields
-		if ( is_string( $value ) ) {
-			return sanitize_textarea_field( $value );
-		}
-
-		return $value;
-	}
 }

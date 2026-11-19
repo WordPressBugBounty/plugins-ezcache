@@ -7,11 +7,11 @@ namespace Composer\Autoload;
 class ComposerStaticInit661e770417c900174bc2708c11d0e415
 {
     public static $prefixLengthsPsr4 = array (
-        'U' => 
+        'U' =>
         array (
             'Upress\\EzCache\\' => 15,
         ),
-        'M' => 
+        'M' =>
         array (
             'MatthiasMullie\\PathConverter\\' => 29,
             'MatthiasMullie\\Minify\\' => 22,
@@ -19,15 +19,15 @@ class ComposerStaticInit661e770417c900174bc2708c11d0e415
     );
 
     public static $prefixDirsPsr4 = array (
-        'Upress\\EzCache\\' => 
+        'Upress\\EzCache\\' =>
         array (
             0 => __DIR__ . '/../..' . '/includes',
         ),
-        'MatthiasMullie\\PathConverter\\' => 
+        'MatthiasMullie\\PathConverter\\' =>
         array (
             0 => __DIR__ . '/..' . '/matthiasmullie/path-converter/src',
         ),
-        'MatthiasMullie\\Minify\\' => 
+        'MatthiasMullie\\Minify\\' =>
         array (
             0 => __DIR__ . '/..' . '/matthiasmullie/minify/src',
         ),
@@ -35,6 +35,59 @@ class ComposerStaticInit661e770417c900174bc2708c11d0e415
 
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+        'MatthiasMullie\\Minify\\CSS' => __DIR__ . '/..' . '/matthiasmullie/minify/src/CSS.php',
+        'MatthiasMullie\\Minify\\Exception' => __DIR__ . '/..' . '/matthiasmullie/minify/src/Exception.php',
+        'MatthiasMullie\\Minify\\Exceptions\\BasicException' => __DIR__ . '/..' . '/matthiasmullie/minify/src/Exceptions/BasicException.php',
+        'MatthiasMullie\\Minify\\Exceptions\\FileImportException' => __DIR__ . '/..' . '/matthiasmullie/minify/src/Exceptions/FileImportException.php',
+        'MatthiasMullie\\Minify\\Exceptions\\IOException' => __DIR__ . '/..' . '/matthiasmullie/minify/src/Exceptions/IOException.php',
+        'MatthiasMullie\\Minify\\Exceptions\\PatternMatchException' => __DIR__ . '/..' . '/matthiasmullie/minify/src/Exceptions/PatternMatchException.php',
+        'MatthiasMullie\\Minify\\JS' => __DIR__ . '/..' . '/matthiasmullie/minify/src/JS.php',
+        'MatthiasMullie\\Minify\\Minify' => __DIR__ . '/..' . '/matthiasmullie/minify/src/Minify.php',
+        'MatthiasMullie\\PathConverter\\Converter' => __DIR__ . '/..' . '/matthiasmullie/path-converter/src/Converter.php',
+        'MatthiasMullie\\PathConverter\\ConverterInterface' => __DIR__ . '/..' . '/matthiasmullie/path-converter/src/ConverterInterface.php',
+        'MatthiasMullie\\PathConverter\\NoConverter' => __DIR__ . '/..' . '/matthiasmullie/path-converter/src/NoConverter.php',
+        'Upress\\EzCache\\Admin' => __DIR__ . '/../..' . '/includes/Admin.php',
+        'Upress\\EzCache\\AdvancedSettingsPage' => __DIR__ . '/../..' . '/includes/AdvancedSettingsPage.php',
+        'Upress\\EzCache\\BackgroundProcesses\\ConvertWebpProcess' => __DIR__ . '/../..' . '/includes/BackgroundProcesses/ConvertWebpProcess.php',
+        'Upress\\EzCache\\Cache' => __DIR__ . '/../..' . '/includes/Cache.php',
+        'Upress\\EzCache\\CriticalCSS' => __DIR__ . '/../..' . '/includes/CriticalCSS.php',
+        'Upress\\EzCache\\DatabaseOptimizer' => __DIR__ . '/../..' . '/includes/DatabaseOptimizer.php',
+        'Upress\\EzCache\\EarlyHints' => __DIR__ . '/../..' . '/includes/EarlyHints.php',
+        'Upress\\EzCache\\FileOptimizer\\BaseFileOptimizer' => __DIR__ . '/../..' . '/includes/FileOptimizer/BaseFileOptimizer.php',
+        'Upress\\EzCache\\FileOptimizer\\CombineGoogleFonts' => __DIR__ . '/../..' . '/includes/FileOptimizer/CombineGoogleFonts.php',
+        'Upress\\EzCache\\FileOptimizer\\CssCombiner' => __DIR__ . '/../..' . '/includes/FileOptimizer/CssCombiner.php',
+        'Upress\\EzCache\\FileOptimizer\\CssMinifier' => __DIR__ . '/../..' . '/includes/FileOptimizer/CssMinifier.php',
+        'Upress\\EzCache\\FileOptimizer\\JsCombiner' => __DIR__ . '/../..' . '/includes/FileOptimizer/JsCombiner.php',
+        'Upress\\EzCache\\FileOptimizer\\JsMinifier' => __DIR__ . '/../..' . '/includes/FileOptimizer/JsMinifier.php',
+        'Upress\\EzCache\\FileOptimizer\\WebpConverter' => __DIR__ . '/../..' . '/includes/FileOptimizer/WebpConverter.php',
+        'Upress\\EzCache\\LicenseApi' => __DIR__ . '/../..' . '/includes/LicenseApi.php',
+        'Upress\\EzCache\\Optimizations' => __DIR__ . '/../..' . '/includes/Optimizations.php',
+        'Upress\\EzCache\\Preload' => __DIR__ . '/../..' . '/includes/Preload.php',
+        'Upress\\EzCache\\PremiumFeatures' => __DIR__ . '/../..' . '/includes/PremiumFeatures.php',
+        'Upress\\EzCache\\RedisConnection' => __DIR__ . '/../..' . '/includes/RedisConnection.php',
+        'Upress\\EzCache\\RedisFallbackSocket' => __DIR__ . '/../..' . '/includes/RedisFallbackSocket.php',
+        'Upress\\EzCache\\RedisObjectCache' => __DIR__ . '/../..' . '/includes/RedisObjectCache.php',
+        'Upress\\EzCache\\RestApi' => __DIR__ . '/../..' . '/includes/RestApi.php',
+        'Upress\\EzCache\\Rest\\CacheController' => __DIR__ . '/../..' . '/includes/Rest/CacheController.php',
+        'Upress\\EzCache\\Rest\\DatabaseController' => __DIR__ . '/../..' . '/includes/Rest/DatabaseController.php',
+        'Upress\\EzCache\\Rest\\LicenseController' => __DIR__ . '/../..' . '/includes/Rest/LicenseController.php',
+        'Upress\\EzCache\\Rest\\PerformanceController' => __DIR__ . '/../..' . '/includes/Rest/PerformanceController.php',
+        'Upress\\EzCache\\Rest\\PreloadController' => __DIR__ . '/../..' . '/includes/Rest/PreloadController.php',
+        'Upress\\EzCache\\Rest\\RedisController' => __DIR__ . '/../..' . '/includes/Rest/RedisController.php',
+        'Upress\\EzCache\\Rest\\Response' => __DIR__ . '/../..' . '/includes/Rest/Response.php',
+        'Upress\\EzCache\\Rest\\SettingsController' => __DIR__ . '/../..' . '/includes/Rest/SettingsController.php',
+        'Upress\\EzCache\\Rest\\StatusController' => __DIR__ . '/../..' . '/includes/Rest/StatusController.php',
+        'Upress\\EzCache\\Rest\\WebpController' => __DIR__ . '/../..' . '/includes/Rest/WebpController.php',
+        'Upress\\EzCache\\Settings' => __DIR__ . '/../..' . '/includes/Settings.php',
+        'Upress\\EzCache\\SpeculativeLoading' => __DIR__ . '/../..' . '/includes/SpeculativeLoading.php',
+        'Upress\\EzCache\\ThirdParty\\Minify_CSS_UriRewriter' => __DIR__ . '/../..' . '/includes/ThirdParty/Minify_CSS_UriRewriter.php',
+        'Upress\\EzCache\\ThirdParty\\Minify_HTML' => __DIR__ . '/../..' . '/includes/ThirdParty/Minify_HTML.php',
+        'Upress\\EzCache\\Updater' => __DIR__ . '/../..' . '/includes/Updater.php',
+        'Upress\\EzCache\\Utilities\\AtomicFile' => __DIR__ . '/../..' . '/includes/Utilities/AtomicFile.php',
+        'Upress\\EzCache\\Utilities\\Encrypter' => __DIR__ . '/../..' . '/includes/Utilities/Encrypter.php',
+        'Upress\\EzCache\\Utilities\\Lock' => __DIR__ . '/../..' . '/includes/Utilities/Lock.php',
+        'Upress\\EzCache\\Utilities\\Logger' => __DIR__ . '/../..' . '/includes/Utilities/Logger.php',
+        'Upress\\EzCache\\WebpApi' => __DIR__ . '/../..' . '/includes/WebpApi.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

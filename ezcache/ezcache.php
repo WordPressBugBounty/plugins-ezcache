@@ -1,9 +1,11 @@
 <?php
 /*
 	Plugin Name: ezCache
-	Description: 🚀 ezCache 2026 — Lightning-fast WordPress caching with CSS/JS optimization, WebP images, preloading, database cleanup &amp; more. Free &amp; Pro.
+	Description: 🚀 ezCache 2026 — Lightning-fast WordPress caching with CSS/JS optimization, WebP images, preloading, database cleanup &amp; more. All features are free.
 	Plugin URI: https://ezcache-wp.com
-	Version: 2.6.9
+	Version: 2.7.1
+	Requires at least: 5.0
+	Requires PHP: 7.4
 	Author: uPress
 	Author URI: https://www.upress.io
 	Text Domain: ezcache
@@ -36,7 +38,7 @@ namespace {
 	define( 'EZCACHE_FILE', __FILE__ );
 	define( 'EZCACHE_URL', plugin_dir_url( __FILE__ ) );
 	define( 'EZCACHE_BASEBANE', basename( __FILE__ ) );
-	define( 'EZCACHE_VERSION', '2.6.9' );
+	define( 'EZCACHE_VERSION', '2.7.1' );
 	define( 'EZCACHE_SETTINGS_KEY', 'ezcache' );
 
 	register_activation_hook( EZCACHE_FILE, 'upress_ezcache_activation_hook' );
@@ -104,7 +106,7 @@ namespace Upress\EzCache {
 
 			add_action( 'init', [ $this, 'load_translation' ] );
 			add_filter( 'cron_schedules', [ $this, 'add_cron_schedules' ] );
-			add_action( 'init', [ $this, 'maybe_repair_installation' ] );
+			add_action( 'admin_init', [ $this, 'maybe_repair_installation' ] );
 			// Self-heal DB tables after file-replacement updates (no activation hook).
 			// maybe_upgrade() runs version migrations; ensure_tables() runs unconditionally
 			// so a site already on the current version but missing a table still recovers.
@@ -113,6 +115,8 @@ namespace Upress\EzCache {
 
 			// Background WebP conversion cron — resilient, self-rescheduling queue drain.
 			add_action( 'ezcache_webp_process_batch', [ '\Upress\EzCache\Rest\WebpController', 'cron_process' ] );
+			// Remember when WP-Cron last ran, so the admin can be told when background work is stuck.
+			add_action( 'init', [ '\Upress\EzCache\Utilities\Cron', 'record_run' ], 1 );
 
 			new RestApi( $this );
 			new Admin( $this );
@@ -122,6 +126,9 @@ namespace Upress\EzCache {
 
 			// v2.2.0 features
 			RedisObjectCache::init();
+            add_action('activated_plugin', function($plugin) {
+                if ($plugin===plugin_basename(EZCACHE_FILE) && !empty(Settings::get_settings()->enable_redis_object_cache)) { RedisObjectCache::flush(); }
+            });
 			SpeculativeLoading::instance()->register();
 			EarlyHints::instance()->register();
 			CriticalCSS::instance()->register();
@@ -148,94 +155,85 @@ namespace Upress\EzCache {
 		}
 
 		function activation_hook() {
+            $disabled=WP_CONTENT_DIR.'/ezcache-disabled.php';
+            if (is_file($disabled) && !@unlink($disabled)) { wp_die('Unable to enable ezCache. Check wp-content permissions.'); }
+            if (!defined('EZCACHE_ACTIVATING')) { define('EZCACHE_ACTIVATING',true); }
 			set_transient( 'ezcache_activating', true );
 
 			// copy advanced-cache
-			copy( EZCACHE_DIR . '/advanced-cache.php', WP_CONTENT_DIR . '/advanced-cache.php' );
+            $path = WP_CONTENT_DIR . '/advanced-cache.php';
+            // An empty file is nobody's drop-in (see maybe_repair_installation()).
+            $current = is_file($path) ? (string) @file_get_contents($path) : '';
+            if ( '' !== trim($current) && strpos($current, 'ezCache Advanced Cache') === false ) {
+                wp_die('Another advanced-cache.php is installed. ezCache has not replaced it.');
+            }
+            $source = @file_get_contents(EZCACHE_DIR . '/advanced-cache.php');
+            if ( is_string($source) ) { try { token_get_all( $source, TOKEN_PARSE ); } catch ( \Throwable $e ) { $source = false; } } // a template cut off half-way does not parse
+            if ( ! is_string($source) || strpos($source, 'ezCache Advanced Cache') === false || strpos($source, 'wp_cache_postload') === false ) {
+                wp_die('Unable to read the ezCache drop-in from the plugin folder.');
+            }
+            $source = str_replace("__DIR__ . '/plugins/ezcache/vendor/autoload.php'", var_export(EZCACHE_DIR . '/vendor/autoload.php', true), $source);
+            if ( ! Utilities\AtomicFile::write($path, $source) ) { wp_die('Unable to install advanced-cache.php. Check directory permissions.'); }
 
 			if ( ! wp_next_scheduled( 'ezcache_clear_expired_cache' ) ) {
 				Settings::maybe_update_cronjobs( Settings::get_settings() );
 			}
 			Updater::upgrade();
 
-			$this->update_wp_config_const( [ 'WP_CACHE' => true ] );
+            $updated = $this->update_wp_config_const( [ 'WP_CACHE' => true ] );
+            if ( is_wp_error($updated) ) { wp_die(esc_html($updated->get_error_message())); }
 
 			$this->ezcache->preload_homepage();
 
 			delete_transient( 'ezcache_activating' );
 		}
 
-		function deactivation_hook() {
-			set_transient( 'ezcache_deactivating', true );
+        function deactivation_hook() {
+            // A durable marker also stops in-flight workers from reinstalling the drop-in.
+            if (!Utilities\AtomicFile::write(WP_CONTENT_DIR.'/ezcache-disabled.php', Settings::FILE_GUARD)) { wp_die('Unable to disable ezCache safely. Check wp-content permissions.'); }
+            if (!defined('EZCACHE_DEACTIVATING')) { define('EZCACHE_DEACTIVATING',true); }
+            set_transient('ezcache_deactivating', true, 60);
+            try {
+                $path = WP_CONTENT_DIR . '/advanced-cache.php';
+                if ( is_file($path) && strpos((string)file_get_contents($path), 'ezCache Advanced Cache') !== false ) { @unlink($path); }
+                RedisObjectCache::remove_dropin();
+                if ( ! is_file($path) ) { $this->update_wp_config_const(['WP_CACHE'=>false]); }
+                $this->ezcache->clear_cache();
+                $this->ezcache->purge_trash(5);
+                Preload::instance()->stop();
+                foreach ( ['ezcache_clear_expired_cache', Cache::PURGE_HOOK, Preload::CRON_HOOK, 'ezcache_db_cleanup', 'ezcache_webp_process_batch', 'ezcache_convert_images_to_webp_hook'] as $hook ) { wp_clear_scheduled_hook($hook); }
+                delete_site_option('ezcache_first_run');
+            } finally { delete_transient('ezcache_deactivating'); }
+        }
 
-			// delete advanced-cache
-			if ( file_exists( WP_CONTENT_DIR . '/advanced-cache.php' ) ) {
-				unlink( WP_CONTENT_DIR . '/advanced-cache.php' );
-			}
-
-			if ( wp_next_scheduled( 'ezcache_clear_expired_cache' ) ) {
-				wp_clear_scheduled_hook( 'ezcache_clear_expired_cache' );
-			}
-
-			delete_site_option( 'ezcache_first_run' );
-
-			$this->update_wp_config_const( [ 'WP_CACHE' => false ] );
-
-			$this->ezcache->clear_cache();
-
-			delete_transient( 'ezcache_deactivating' );
-		}
-
-		/**
-		 * Update the wp-config.php file with the specified values
-		 *
-		 * @param array $args Assoc array of key-value, key is the define to update with the value
-		 */
-		function update_wp_config_const( $args ) {
-			if ( ! is_array( $args ) ) {
-				return;
-			}
-
-			$wp_config_path = $this->get_wp_config_path();
-
-			copy( $wp_config_path, $wp_config_path . '.backup' );
-
-			$contents = file_get_contents( $wp_config_path );
-			$contents = preg_replace( "/\r\n|\r|\n/", "\n", $contents ); // normalize line-breaks
-
-			// update wp-config define
-			foreach ( $args as $const => $value ) {
-				if ( is_string( $value ) ) {
-					$value = "'" . str_replace( "'", "\'", $value ) . "'";
-				} elseif ( is_bool( $value ) ) {
-					$value = $value ? 'true' : 'false'; // simply casting to string will result in '1' and ''
-				} else {
-					continue;
-				}
-
-				if ( preg_match( '/define\s*?\(\s*?[\']' . $const . '[\'"]/', $contents ) ) {
-					$contents = preg_replace( '/define\s*?\(\s*?([\'"])' . $const . '\1,\s*(([\'"]).+\3|.+?)\s*\)/', "define( '{$const}', {$value} )", $contents );
-				} else {
-					$contents = preg_replace( '/(<\?php)/', "$1\ndefine( '{$const}', {$value} );", $contents );
-				}
-			}
-
-			if ( "\n" !== PHP_EOL ) {
-				// update line-breaks to platform defaults
-				$contents = preg_replace( "/\n/", PHP_EOL, $contents );
-			}
-
-			file_put_contents( $wp_config_path, trim( $contents ) );
-
-			if ( filesize( $wp_config_path ) <= 0 ) {
-				// operation failed, revert the file
-				copy( $wp_config_path . '.backup', $wp_config_path );
-			}
-
-			unlink( $wp_config_path . '.backup' );
-		}
+        /** In-place backup copies are never created; rename is the commit point. */
+        function update_wp_config_const( $args ) {
+            if ( ! is_array($args) || array_keys($args) !== ['WP_CACHE'] || ! is_bool($args['WP_CACHE']) ) {
+                return new \WP_Error('invalid_config_update', 'Invalid configuration update.');
+            }
+            $lock = Utilities\Lock::acquire('wp-config');
+            if ( ! $lock ) { return new \WP_Error('config_busy', 'Another configuration update is running.'); }
+            try {
+                $path = $this->get_wp_config_path();
+                $contents = @file_get_contents($path);
+                if ( false === $contents ) { return new \WP_Error('config_read_failed', 'Cannot read wp-config.php.'); }
+                $value = $args['WP_CACHE'] ? 'true' : 'false';
+                $pattern = '/define\s*\(\s*([\'"])WP_CACHE\1\s*,\s*(?:true|false|0|1)\s*\)/i';
+                $updated = preg_replace_callback($pattern, function() use($value) { return "define( 'WP_CACHE', {$value} )"; }, $contents, -1, $count);
+                if ( ! $count ) {
+                    if ( preg_match('/define\s*\(\s*[\'"]WP_CACHE[\'"]/', $contents) ) { return new \WP_Error('custom_wp_cache', 'Set WP_CACHE manually in wp-config.php; its value is an expression.'); }
+                    $updated = preg_replace_callback('/<\?php\s/', function($match) use($value) { return $match[0] . "\ndefine( 'WP_CACHE', {$value} );\n"; }, $contents, 1);
+                }
+                if ( $updated === $contents ) { return true; }
+                try { token_get_all($updated, TOKEN_PARSE); } catch (\Throwable $e) { return new \WP_Error('invalid_config', 'Configuration validation failed.'); }
+                if ( ! Utilities\AtomicFile::write($path, $updated, fileperms($path) & 0777) ) { return new \WP_Error('config_write_failed', 'Cannot update wp-config.php. Check file permissions.'); }
+                return true;
+            } finally { Utilities\Lock::release($lock); }
+        }
 
 		function add_cron_schedules( $schedules ) {
+            $schedules['weekly'] = $schedules['weekly'] ?? ['interval'=>7*DAY_IN_SECONDS,'display'=>__('Weekly','ezcache')];
+            $schedules['monthly'] = $schedules['monthly'] ?? ['interval'=>30*DAY_IN_SECONDS,'display'=>__('Every 30 days','ezcache')];
 			if ( ! isset( $schedules['every_10_minutes'] ) ) {
 				$schedules['every_10_minutes'] = [
 					'interval' => 600,
@@ -297,29 +295,43 @@ namespace Upress\EzCache {
 		/**
 		 * Repaire the plugin installation when POST variable is set
 		 */
-		function maybe_repair_installation() {
-			$repaired = get_transient( 'ezcache_repaired' );
-			delete_transient( 'ezcache_repaired' );
+        function maybe_repair_installation() {
+            if (!current_user_can(is_multisite() ? 'manage_network_options' : 'manage_options') || is_file(WP_CONTENT_DIR.'/ezcache-disabled.php')) { return; }
+            $path=WP_CONTENT_DIR.'/advanced-cache.php';
+            // A conflict must not lock administrators out of every wp-admin screen.
+            // An empty file is nobody's drop-in: an update caught half-way left one behind,
+            // and reading it as another plugin's switched the page cache off for good.
+            $current=is_file($path) ? (string)@file_get_contents($path) : '';
+            if (''!==trim($current) && strpos($current,'ezCache Advanced Cache')===false) { return; }
+            // While the plugin folder is being replaced the template can be missing, empty
+            // or half written. Never install that; the next admin request tries again.
+            $source=@file_get_contents(EZCACHE_DIR.'/advanced-cache.php');
+            if (is_string($source)) { try { token_get_all( $source, TOKEN_PARSE ); } catch ( \Throwable $e ) { $source = false; } } // a template cut off half-way does not parse
+            if (!is_string($source) || strpos($source,'ezCache Advanced Cache')===false || strpos($source,'wp_cache_postload')===false) { return; }
+            $source=str_replace("__DIR__ . '/plugins/ezcache/vendor/autoload.php'",var_export(EZCACHE_DIR.'/vendor/autoload.php',true),$source);
+            $error=null;
+            if ((!is_file($path) || hash_file('sha256',$path)!==hash('sha256',$source)) && !Utilities\AtomicFile::write($path,$source)) {
+                $error=new \WP_Error('dropin_write_failed','Could not repair advanced-cache.php. Check wp-content permissions.');
+            }
+            if (!is_wp_error($error) && (!defined('WP_CACHE') || !WP_CACHE)) { $error=$this->update_wp_config_const(['WP_CACHE'=>true]); }
+            if (is_wp_error($error)) {
+                add_action('admin_notices',function()use($error){echo '<div class="notice notice-error"><p>'.esc_html($error->get_error_message()).'</p></div>';});
+                return;
+            }
+            if (!wp_next_scheduled('ezcache_clear_expired_cache')) { Settings::maybe_update_cronjobs(Settings::get_settings()); }
+        }
 
-			if ( $repaired || get_transient( 'ezcache_deactivating' ) || get_transient( 'ezcache_activating' ) ) {
-				return;
-			}
-
-			if ( ! wp_next_scheduled( 'ezcache_clear_expired_cache' ) ) {
-				Settings::maybe_update_cronjobs( Settings::get_settings() );
-			}
-
-			$status = $this->ezcache->get_status();
-			if ( $status['cache_enabled'] && $status['adv_cache_exists'] && $status['adv_cache_exists'] && $status['correct_cache_exists'] && $status['webp_table_exists'] ) {
-				return;
-			}
-
-			$this->activation_hook();
-
-			set_transient( 'ezcache_repaired', true );
-		}
 	}
 
+	// Right after the files were replaced, PHP's opcode cache can keep serving old
+	// copies of some of them for up to a minute. The first request that runs this
+	// (new) file ends that mix for everyone by resetting the cache for the plugin.
+	// method_exists: the Updater class loaded in this very request may be an old copy.
+	add_action( 'plugins_loaded', function () {
+		if ( get_option( 'ezcache_version' ) !== EZCACHE_VERSION && method_exists( '\Upress\EzCache\Updater', 'reset_opcache' ) ) {
+			\Upress\EzCache\Updater::reset_opcache();
+		}
+	}, 0 );
 	add_action( 'plugins_loaded', '\Upress\EzCache\Plugin::initialize' );
 	add_action( 'plugins_loaded', function() { \Upress\EzCache\PremiumFeatures::maybe_start_trial(); }, 20 );
 }

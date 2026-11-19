@@ -9,7 +9,7 @@ namespace Upress\EzCache;
  *  - Revisions, auto-drafts, trashed posts
  *  - Spam and trashed comments
  *  - Expired transients
- *  - Optimize MyISAM/InnoDB tables (`OPTIMIZE TABLE`)
+ *  - Optimize one small MyISAM table per run
  *
  * Each task is opt-in via the corresponding setting flag and `clean()` returns
  * a per-task summary so the UI can show what was cleaned up.
@@ -22,80 +22,59 @@ class DatabaseOptimizer {
 	 * @param array $tasks Optional explicit list of tasks; defaults to all enabled in settings.
 	 * @return array Per task counts.
 	 */
-	public function clean( $tasks = null ) {
-		global $wpdb;
-
-		$settings = Settings::get_settings();
-		$results  = [];
-
-		$enabled = function ( $key ) use ( $tasks, $settings ) {
-			if ( is_array( $tasks ) ) {
-				return in_array( $key, $tasks, true );
-			}
-			return ! empty( $settings->{ $key } );
-		};
-
-		if ( $enabled( 'db_cleanup_revisions' ) ) {
-			$results['revisions'] = (int) $wpdb->query( "DELETE FROM {$wpdb->posts} WHERE post_type = 'revision'" );
-		}
-
-		if ( $enabled( 'db_cleanup_auto_drafts' ) ) {
-			$results['auto_drafts'] = (int) $wpdb->query( "DELETE FROM {$wpdb->posts} WHERE post_status = 'auto-draft'" );
-		}
-
-		if ( $enabled( 'db_cleanup_trashed_posts' ) ) {
-			$results['trashed_posts'] = (int) $wpdb->query( "DELETE FROM {$wpdb->posts} WHERE post_status = 'trash'" );
-		}
-
-		if ( $enabled( 'db_cleanup_spam_comments' ) ) {
-			$results['spam_comments'] = (int) $wpdb->query( "DELETE FROM {$wpdb->comments} WHERE comment_approved = 'spam'" );
-		}
-
-		if ( $enabled( 'db_cleanup_trashed_comments' ) ) {
-			$results['trashed_comments'] = (int) $wpdb->query( "DELETE FROM {$wpdb->comments} WHERE comment_approved = 'trash' OR comment_approved = 'post-trashed'" );
-		}
-
-		if ( $enabled( 'db_cleanup_expired_transients' ) ) {
-			$now     = time();
-			$results['expired_transients'] = (int) $wpdb->query(
-				$wpdb->prepare(
-					"DELETE a, b FROM {$wpdb->options} a, {$wpdb->options} b
-					 WHERE a.option_name LIKE %s
-					 AND a.option_name NOT LIKE %s
-					 AND b.option_name = CONCAT( '_transient_timeout_', SUBSTRING( a.option_name, 12 ) )
-					 AND b.option_value < %d",
-					$wpdb->esc_like( '_transient_' ) . '%',
-					$wpdb->esc_like( '_transient_timeout_' ) . '%',
-					$now
-				)
-			);
-		}
-
-		if ( $enabled( 'db_cleanup_orphan_postmeta' ) ) {
-			$results['orphan_postmeta'] = (int) $wpdb->query( "DELETE pm FROM {$wpdb->postmeta} pm LEFT JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE p.ID IS NULL" );
-		}
-
-		if ( $enabled( 'db_optimize_tables' ) ) {
-			$tables    = $wpdb->get_col( "SHOW TABLES LIKE '{$wpdb->prefix}%'" );
-			$optimized = 0;
-			foreach ( $tables as $table ) {
-				if ( false !== $wpdb->query( "OPTIMIZE TABLE `{$table}`" ) ) {
-					$optimized++;
-				}
-			}
-			$results['optimized_tables'] = $optimized;
-		}
-
-		// Clear post cache so updates are reflected immediately.
-		Cache::instance()->clear_cache();
-
-		return $results;
-	}
+    public function clean( $tasks = null ) {
+        global $wpdb;
+        $lock = Utilities\Lock::acquire('database-cleanup-' . get_current_blog_id());
+        if (!$lock) { return ['busy'=>true]; }
+        try {
+            $settings = Settings::get_settings(); $results = []; $deadline = microtime(true)+8;
+            $enabled = function($key) use($tasks,$settings) { return is_array($tasks) ? in_array($key,$tasks,true) : !empty($settings->$key); };
+            foreach ([ 'revisions'=>"post_type = 'revision'", 'auto_drafts'=>"post_status = 'auto-draft'", 'trashed_posts'=>"post_status = 'trash'" ] as $name=>$where) {
+                if (!$enabled('db_cleanup_'.$name)) { continue; }
+                $results[$name]=0;
+                $ids=$wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE {$where} ORDER BY ID LIMIT 100");
+                foreach($ids as $id) { if(microtime(true)>$deadline){break;} if(wp_delete_post((int)$id,true)){$results[$name]++;} }
+                if(count($ids)===100 || microtime(true)>$deadline){$results['has_more']=true;}
+            }
+            foreach(['spam_comments'=>"comment_approved = 'spam'",'trashed_comments'=>"comment_approved IN ('trash','post-trashed')"] as $name=>$where){
+                if(!$enabled('db_cleanup_'.$name)){continue;}$results[$name]=0;
+                $ids=$wpdb->get_col("SELECT comment_ID FROM {$wpdb->comments} WHERE {$where} ORDER BY comment_ID LIMIT 100");
+                foreach($ids as $id){if(microtime(true)>$deadline){break;}if(wp_delete_comment((int)$id,true)){$results[$name]++;}}
+                if(count($ids)===100 || microtime(true)>$deadline){$results['has_more']=true;}
+            }
+            if($enabled('db_cleanup_expired_transients') && microtime(true)<$deadline){
+                $names=$wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d LIMIT 200",$wpdb->esc_like('_transient_timeout_').'%',time()));
+                $results['expired_transients']=0;
+                foreach($names as $name){if(delete_transient(substr($name,19))){$results['expired_transients']++;}}
+                if(count($names)===200){$results['has_more']=true;}
+            }
+            if($enabled('db_cleanup_orphan_postmeta') && microtime(true)<$deadline){
+                $ids=$wpdb->get_col("SELECT pm.meta_id FROM {$wpdb->postmeta} pm LEFT JOIN {$wpdb->posts} p ON p.ID=pm.post_id WHERE p.ID IS NULL LIMIT 200");
+                $results['orphan_postmeta']=0;
+                foreach($ids as $id){if(delete_metadata_by_mid('post',(int)$id)){$results['orphan_postmeta']++;}}
+                if(count($ids)===200){$results['has_more']=true;}
+            }
+            if($enabled('db_optimize_tables')){
+                // Rebuilding large InnoDB tables in a web request can block the site.
+                // Only small MyISAM tables are maintained here, at most one per run.
+                $tables=$wpdb->get_results($wpdb->prepare('SHOW TABLE STATUS LIKE %s',$wpdb->esc_like($wpdb->prefix).'%'));
+                $results['optimized_tables']=0;$results['optimization_skipped']=0;
+                foreach($tables as $table){
+                    if($results['optimized_tables'] || microtime(true)>$deadline || $table->Engine!=='MyISAM' || $table->Data_length+$table->Index_length>10*1024*1024){$results['optimization_skipped']++;continue;}
+                    $name=str_replace('`','``',$table->Name);
+                    if(false!==$wpdb->query("OPTIMIZE TABLE `{$name}`")){$results['optimized_tables']++;}
+                }
+            }
+            Cache::instance()->clear_cache();
+            return $results;
+        } finally { Utilities\Lock::release($lock); }
+    }
 
 	/**
 	 * Schedule a recurring cleanup based on the settings.
 	 */
 	public function schedule() {
+        if (Settings::is_disabled()) { wp_clear_scheduled_hook('ezcache_db_cleanup'); return; }
 		$settings = Settings::get_settings();
 
 		$timestamp = wp_next_scheduled( 'ezcache_db_cleanup' );
@@ -106,6 +85,10 @@ class DatabaseOptimizer {
 			return;
 		}
 
+		        $schedules = wp_get_schedules();
+        if (!isset($schedules[$settings->db_cleanup_schedule])) { return; }
+        $schedule = wp_get_schedule('ezcache_db_cleanup');
+        if ($schedule && $schedule !== $settings->db_cleanup_schedule) { wp_clear_scheduled_hook('ezcache_db_cleanup'); $timestamp=false; }
 		if ( ! $timestamp ) {
 			wp_schedule_event( time() + DAY_IN_SECONDS, $settings->db_cleanup_schedule, 'ezcache_db_cleanup' );
 		}

@@ -21,6 +21,10 @@ abstract class BaseFileOptimizer {
 	 */
 	function is_external_file( $url ) {
 		$file = wp_parse_url( $url );
+		// A URL that cannot be parsed, or has no path ("?ver=3", "#top"), is not a file on another host.
+		if ( ! is_array( $file ) ) {
+			$file = [];
+		}
 		$site = wp_parse_url( site_url() );
 
 		// URL has domain and domain is not part of the internal domains.
@@ -33,7 +37,7 @@ abstract class BaseFileOptimizer {
 		}
 
 		// URL has no domain and doesn't contain the WP_CONTENT path or wp-includes.
-		if ( ! isset( $file['host'] ) && ! preg_match( '#(' . $site['path'] . '|wp-includes)#', $file['path'] ) ) {
+		if ( ! isset( $file['host'] ) && ! preg_match( '#(' . $site['path'] . '|wp-includes)#', (string) ( $file['path'] ?? '' ) ) ) {
 			return true;
 		}
 

@@ -66,7 +66,7 @@ class CriticalCSS {
      */
     public function defer_stylesheet( $tag, $handle, $href, $media ) {
         // Don't defer admin or login stylesheets
-        if ( is_admin() ) { return $tag; }
+        if ( is_admin() || ! $this->get_critical_css($this->get_url_pattern()) ) { return $tag; }
         $media_attr = $media ?: 'all';
         $deferred = sprintf(
             '<link rel="preload" href="%s" as="style" onload="this.onload=null;this.rel=\'stylesheet\';this.media=\'%s\'">' . "\n" .
@@ -101,7 +101,8 @@ class CriticalCSS {
                 'viewport_height' => self::VIEWPORT_HEIGHT,
             ] ),
             'headers' => [ 'Content-Type' => 'application/json' ],
-            'sslverify' => false,
+            'sslverify' => true,
+            'limit_response_size' => 512*1024,
         ] );
 
         if ( is_wp_error( $response ) ) {
@@ -109,12 +110,15 @@ class CriticalCSS {
         }
 
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( empty( $body['css'] ) ) {
+        if ( 200 !== (int) wp_remote_retrieve_response_code($response) || empty( $body['css'] ) || ! is_string($body['css']) || strlen($body['css']) > 500000 ) {
             return [ 'success' => false, 'message' => 'No CSS returned from API' ];
         }
 
-        $pattern = $pattern ?: $this->get_url_pattern();
-        $this->save_critical_css( $pattern, $body['css'] );
+        if (!$pattern) {
+            $id=url_to_postid($page_url);
+            $pattern=untrailingslashit($page_url)===untrailingslashit(home_url('/')) ? 'home' : ($id ? (get_post_type($id)==='page' ? 'page' : 'post') : 'default');
+        }
+        if ( ! $this->save_critical_css( $pattern, $body['css'] ) ) { return ['success'=>false,'message'=>'Could not save Critical CSS.']; }
 
         return [ 'success' => true, 'message' => 'Critical CSS generated', 'css' => $body['css'] ];
     }
@@ -142,7 +146,7 @@ class CriticalCSS {
     public function save_critical_css( $pattern, $css ) {
         wp_mkdir_p( $this->storage_path );
         $file = $this->storage_path . sanitize_file_name( $pattern ) . '.css';
-        file_put_contents( $file, wp_strip_all_tags( $css ) );
+        return Utilities\AtomicFile::write( $file, wp_strip_all_tags( $css ) );
     }
 
     /**
@@ -193,9 +197,12 @@ class CriticalCSS {
         // Try to find the local diagnostic API (Booting AI diagnostic server).
         $diag_url = \get_option( 'ezcache_diag_api_url' );
         if ( $diag_url ) {
+            $parts = wp_parse_url($diag_url);
+            if (!is_array($parts) || !in_array($parts['scheme'] ?? '', ['https','http'], true) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])) { return false; }
+            if ($parts['scheme'] !== 'https' && !in_array($parts['host'], ['localhost','127.0.0.1','[::1]'], true)) { return false; }
             return rtrim( $diag_url, '/' );
         }
-        // Default: localhost diagnostic service
-        return 'http://localhost:8787';
+        // No implicit service: an operator must configure an endpoint explicitly.
+        return false;
     }
 }

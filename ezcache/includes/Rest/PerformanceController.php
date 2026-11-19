@@ -89,7 +89,7 @@ class PerformanceController {
 			$preload_status = Preload::instance()->get_status();
 		}
 
-		return wp_send_json_success( array_merge( $settings, [
+		return Response::success( array_merge( $settings, [
 			'preload_status' => $preload_status,
 		] ) );
 	}
@@ -100,29 +100,41 @@ class PerformanceController {
 	 */
 	function update( $request ) {
 		$input = (array) $request->get_json_params();
-		$current_settings = (array) Settings::get_settings();
+		$current_settings = [];
 		
 		foreach ( self::$performance_keys as $key ) {
 			if ( isset( $input[ $key ] ) ) {
-				$current_settings[ $key ] = $this->sanitize_value( $key, $input[ $key ] );
+				$current_settings[ $key ] = $input[ $key ];
 			}
 		}
 
 
-		Settings::set_settings( $current_settings );
+		$saved = Settings::set_settings( $current_settings );
+        if ( is_wp_error($saved) ) { return $saved; }
 
-		return wp_send_json_success();
+		return Response::success();
 	}
 
 	/**
 	 * Run preload
 	 */
+    function generateCriticalCss( $request ) {
+        $url = $request->get_param('url') ?: home_url('/');
+        if ( ! is_string($url) || ! wp_http_validate_url($url) || wp_parse_url($url, PHP_URL_HOST) !== wp_parse_url(home_url(), PHP_URL_HOST) ) {
+            return new \WP_Error('invalid_url', 'Choose a public page on this site.', ['status'=>400]);
+        }
+        $result = \Upress\EzCache\CriticalCSS::instance()->generate($url);
+        if ( empty($result['success']) ) { return new \WP_Error('critical_css_failed', $result['message'], ['status'=>502]); }
+        return Response::success($result);
+    }
+
 	function runPreload() {
 		if ( class_exists( '\Upress\EzCache\Preload' ) ) {
-			Preload::instance()->start();
+	        $result = Preload::instance()->start();
+        if (is_wp_error($result)) { return $result; }
 		}
 
-		return wp_send_json_success( [ 'message' => 'Preload started' ] );
+		return Response::success( [ 'message' => 'Preload started' ] );
 	}
 
 	/**
@@ -132,9 +144,10 @@ class PerformanceController {
 		$status = [];
 		if ( class_exists( '\Upress\EzCache\Preload' ) ) {
 			$status = Preload::instance()->resume();
+            if (is_wp_error($status)) { return $status; }
 		}
 
-		return wp_send_json_success( [ 'message' => 'Preload resumed', 'preload_status' => $status ] );
+		return Response::success( [ 'message' => 'Preload resumed', 'preload_status' => $status ] );
 	}
 
 	/**
@@ -142,10 +155,11 @@ class PerformanceController {
 	 */
 	function stopPreload() {
 		if ( class_exists( '\Upress\EzCache\Preload' ) ) {
-			Preload::instance()->stop();
+			$status = Preload::instance()->stop();
+            if (is_wp_error($status)) { return $status; }
 		}
 
-		return wp_send_json_success( [ 'message' => 'Preload stopped' ] );
+		return Response::success( [ 'message' => 'Preload stopped' ] );
 	}
 
 	/**
@@ -163,52 +177,10 @@ class PerformanceController {
 		$optimizer = new DatabaseOptimizer();
 		$results   = $optimizer->clean( $tasks );
 
-		return wp_send_json_success( [
+		return Response::success( [
 			'message' => 'Database cleanup completed',
 			'results' => $results,
 		] );
 	}
 
-	/**
-	 * Sanitize a value based on its key
-	 */
-	private function sanitize_value( $key, $value ) {
-		// Boolean fields
-		$booleans = [
-			'enable_preload', 'preload_on_cache_clear', 'preload_crawl_homepage_links',
-			'lazy_load_images', 'lazy_load_iframes', 'defer_js', 'remove_query_strings',
-			'heartbeat_control', 'cdn_enabled',
-			'db_cleanup_revisions', 'db_cleanup_auto_drafts', 'db_cleanup_trashed_posts',
-			'db_cleanup_spam_comments', 'db_cleanup_trashed_comments', 
-			'db_cleanup_expired_transients', 'db_cleanup_orphan_postmeta', 'db_optimize_tables',
-			// v2.2.0
-			'enable_redis_object_cache', 'enable_redis_fullpage', 'enable_critical_css',
-			'enable_speculative_loading', 'enable_early_hints',
-		];
-
-		if ( in_array( $key, $booleans, true ) ) {
-			return (bool) $value;
-		}
-
-		// Integer fields
-		if ( $key === 'preload_batch_size' ) {
-			return max( 1, min( 50, (int) $value ) );
-		}
-
-		// Select fields
-		if ( $key === 'heartbeat_mode' ) {
-			return in_array( $value, [ 'reduce', 'disable' ], true ) ? $value : 'reduce';
-		}
-
-		if ( $key === 'db_cleanup_schedule' ) {
-			return in_array( $value, [ 'never', 'daily', 'weekly' ], true ) ? $value : 'never';
-		}
-
-		if ( $key === 'speculative_mode' ) {
-			return in_array( $value, [ 'conservative', 'moderate', 'eager' ], true ) ? $value : 'moderate';
-		}
-
-		// Text fields
-		return sanitize_textarea_field( $value );
-	}
 }

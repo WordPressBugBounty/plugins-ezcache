@@ -11,7 +11,7 @@ namespace Upress\EzCache;
  * and renders a plain PHP form for the new Preload, Optimizations, CDN,
  * Heartbeat and Database modules. The form posts to admin-post.php and is
  * persisted through the existing Settings class so all storage stays in the
- * single ezcache-config.json file.
+ * single ezcache-config.php file.
  */
 class AdvancedSettingsPage {
 
@@ -35,7 +35,7 @@ class AdvancedSettingsPage {
 	 * Render the settings screen.
 	 */
 	public function render() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' ) ) {
 			return;
 		}
 
@@ -278,7 +278,7 @@ class AdvancedSettingsPage {
 						<td><?php $checkbox( 'db_cleanup_orphan_postmeta' ); ?></td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="db_optimize_tables"><?php esc_html_e( 'Run OPTIMIZE TABLE on all tables', 'ezcache' ); ?></label></th>
+						<th scope="row"><label for="db_optimize_tables"><?php esc_html_e( 'Optimize one small MyISAM table per run', 'ezcache' ); ?></label></th>
 						<td><?php $checkbox( 'db_optimize_tables' ); ?></td>
 					</tr>
 					<tr>
@@ -375,20 +375,23 @@ class AdvancedSettingsPage {
 		$batch = isset( $_POST['preload_batch_size'] ) ? max( 1, min( 50, (int) $_POST['preload_batch_size'] ) ) : 5;
 		$new_settings['preload_batch_size'] = $batch;
 
-		Settings::set_settings( $new_settings );
+		$result=Settings::set_settings( $new_settings );
+        if (is_wp_error($result)) { wp_die(esc_html($result->get_error_message()),'', ['response'=>500]); }
 
 		$this->redirect_back( 'saved' );
 	}
 
 	public function handle_run_preload() {
 		$this->verify();
-		Preload::instance()->start();
+		$result=Preload::instance()->start();
+        if (is_wp_error($result)) { wp_die(esc_html($result->get_error_message()),'', ['response'=>409]); }
 		$this->redirect_back( 'preload_run' );
 	}
 
 	public function handle_stop_preload() {
 		$this->verify();
-		Preload::instance()->stop();
+		$result=Preload::instance()->stop();
+        if (is_wp_error($result)) { wp_die(esc_html($result->get_error_message()),'', ['response'=>409]); }
 		$this->redirect_back( 'preload_stop' );
 	}
 
@@ -399,8 +402,8 @@ class AdvancedSettingsPage {
 	}
 
 	protected function verify() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'Forbidden', 'ezcache' ), 403 );
+		if ( ! current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' ) ) {
+			wp_die( esc_html__( 'Forbidden', 'ezcache' ), '', ['response'=>403] );
 		}
 		check_admin_referer( self::NONCE );
 	}

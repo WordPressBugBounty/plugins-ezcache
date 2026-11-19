@@ -1,9 +1,6 @@
 <?php
 /**
- * 103 Early Hints
- *
- * Sends HTTP 103 Early Hints headers for CSS and JS assets so the browser
- * can start fetching them before the main response body arrives.
+ * Resource preload hints. Reverse proxies may promote Link headers to HTTP 103.
  *
  * @package Upress\EzCache
  */
@@ -39,9 +36,8 @@ class EarlyHints {
         // Collect enqueued styles and scripts early
         add_action( 'wp_enqueue_scripts', [ $this, 'collect_assets' ], PHP_INT_MAX );
 
-        // Send Early Hints headers before the page is rendered.
-        // The 'send_headers' hook fires before output — ideal for 103.
-        add_action( 'send_headers', [ $this, 'send_early_hints' ] );
+        // Emit after assets are collected, without changing the response status.
+        add_action( 'wp_enqueue_scripts', [ $this, 'send_early_hints' ], PHP_INT_MAX );
     }
 
     /**
@@ -49,6 +45,7 @@ class EarlyHints {
      */
     public function collect_assets() {
         global $wp_styles, $wp_scripts;
+        $this->hints = [];
 
         if ( $wp_styles instanceof \WP_Styles ) {
             foreach ( $wp_styles->queue as $handle ) {
@@ -75,33 +72,20 @@ class EarlyHints {
         }
     }
 
-    /**
-     * Emit 103 Early Hints response headers.
-     *
-     * Note: PHP can only send one status line, so we output the 103 block
-     * via header() calls before WordPress sets the 200. On servers that
-     * buffer (nginx + fastcgi_buffering off or LiteSpeed), this correctly
-     * flushes a 103 interim response first.
-     */
+    /** Emit preload Link headers without replacing the final HTTP status. */
     public function send_early_hints() {
         if ( is_admin() || empty( $this->hints ) ) {
             return;
         }
 
-        // Only attempt on servers/PHP versions that support 103
-        if ( ! function_exists( 'header' ) ) {
-            return;
-        }
-
-        // Send 103 header line
-        if ( PHP_MAJOR_VERSION >= 8 && PHP_MINOR_VERSION >= 0 ) {
-            // PHP 8+ header() supports arbitrary status codes without output
-            @header( 'HTTP/1.1 103 Early Hints' );
-        }
+        // PHP's header() cannot emit a portable interim response. Keep the final
+        // status untouched and send standard Link headers. A reverse proxy may
+        // promote these to 103; without one they are ordinary preload hints.
+        if ( headers_sent() ) { return; }
 
         // Deduplicate and send Link headers
         $seen = [];
-        foreach ( array_unique( $this->hints ) as $hint ) {
+        foreach ( array_slice(array_unique( $this->hints ),0,12) as $hint ) {
             $key = md5( $hint );
             if ( isset( $seen[ $key ] ) ) { continue; }
             $seen[ $key ] = true;
@@ -119,7 +103,7 @@ class EarlyHints {
         if ( ! $src ) { return false; }
 
         // Already absolute
-        if ( strpos( $src, 'http' ) === 0 ) {
+        if ( preg_match('#^https?://#i', $src) ) {
             return $src;
         }
 

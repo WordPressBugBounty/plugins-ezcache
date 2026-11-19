@@ -84,7 +84,7 @@ class RestApi {
 			$permission_callback = $capability;
 		} else {
 			$permission_callback = function () use ($capability) {
-				return current_user_can( $capability );
+				return current_user_can( is_multisite() ? 'manage_network_options' : $capability );
 			};
 		}
 
@@ -95,8 +95,8 @@ class RestApi {
 				'callback' => function($request) use ($callback) {
 				try {
 					return call_user_func($callback, $request);
-				} catch (\Exception $e) {
-					return new \WP_Error('server_error', $e->getMessage(), ['status' => 500]);
+				} catch (\Throwable $e) {
+					return new \WP_Error('server_error', 'The requested operation failed.', ['status' => 500]);
 				}
 			},
 				'permission_callback' => $permission_callback,

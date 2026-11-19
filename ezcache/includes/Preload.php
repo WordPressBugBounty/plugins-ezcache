@@ -2,6 +2,7 @@
 
 namespace Upress\EzCache;
 
+use Upress\EzCache\Utilities\Cron;
 use Upress\EzCache\Utilities\Logger;
 
 /**
@@ -35,6 +36,9 @@ class Preload {
 
 	/** @var object */
 	protected $settings;
+    private $deadline;
+    private $sitemap_deadline;
+    private $sitemaps_seen = [];
 
 	public static function instance() {
 		if ( ! self::$instance ) {
@@ -67,9 +71,10 @@ class Preload {
 	 * once the queue is empty (see process_queue()).
 	 */
 	public function ensure_cron() {
-		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-			wp_schedule_event( time() + 30, self::CRON_INTERVAL, self::CRON_HOOK );
-		}
+        if (Settings::is_disabled()) { return; }
+		// Cron::ensure also gets an event that is stuck in the past run and, when WordPress
+		// does not spawn WP-Cron itself (DISABLE_WP_CRON), triggers one run.
+		Cron::ensure( self::CRON_HOOK, 30, self::CRON_INTERVAL );
 	}
 
 	/**
@@ -109,6 +114,12 @@ class Preload {
 	 * @return array Status data.
 	 */
 	public function resume() {
+        $lock = Utilities\Lock::acquire('preload-' . get_current_blog_id());
+        if (!$lock) { return new \WP_Error('preload_busy','A preload batch is running. Try again shortly.',['status'=>409]); }
+        try { return $this->resume_locked(); } finally { Utilities\Lock::release($lock); }
+    }
+
+    private function resume_locked() {
 		if ( $this->has_pending_queue() ) {
 			$state = get_option( self::STATE_OPTION, [] );
 			if ( ! is_array( $state ) ) {
@@ -145,6 +156,8 @@ class Preload {
 	 * Schedule (or unschedule) the recurring queue processor based on settings.
 	 */
 	public function maybe_schedule_cron() {
+        if (Settings::is_disabled()) { wp_clear_scheduled_hook(self::CRON_HOOK); return; }
+        $this->settings = Settings::get_settings();
 		if ( ! empty( $this->settings->enable_preload ) ) {
 			$this->ensure_cron();
 		} else {
@@ -165,6 +178,8 @@ class Preload {
 	 * Start a preload run if the feature is enabled.
 	 */
 	public function maybe_start_preload() {
+        if ((defined('EZCACHE_DEACTIVATING') || get_transient('ezcache_deactivating'))) { return; }
+        $this->settings = Settings::get_settings();
 		if ( empty( $this->settings->enable_preload ) ) {
 			return;
 		}
@@ -181,7 +196,15 @@ class Preload {
 	 *
 	 * @return array Status data.
 	 */
-	public function start() {
+    public function start(  ) {
+        $lock = Utilities\Lock::acquire('preload-' . get_current_blog_id());
+        if (!$lock) { return new \WP_Error('preload_busy', 'A preload batch is running. Try again shortly.', ['status'=>409]); }
+        try { return $this->start_locked(); } finally { Utilities\Lock::release($lock); }
+    }
+    private function start_locked(  ) {
+        $this->settings = Settings::get_settings();
+        $this->sitemap_deadline = microtime(true) + 10;
+        $this->sitemaps_seen = [];
 		$urls = $this->collect_initial_urls();
 		$urls = apply_filters( 'ezcache_preload_initial_urls', $urls );
 
@@ -193,6 +216,9 @@ class Preload {
 			'status'     => 'running',
 			'total'      => count( $urls ),
 			'processed'  => 0,
+            'failed' => 0,
+            'attempts' => [],
+            'failed_urls' => [],
 			'started'    => time(),
 			'finished'   => 0,
 			'last_batch' => 0,
@@ -214,13 +240,19 @@ class Preload {
 	/**
 	 * Cancel any in-progress preload.
 	 */
-	public function stop() {
+    public function stop(  ) {
+        $lock = Utilities\Lock::acquire('preload-' . get_current_blog_id());
+        if (!$lock) { return new \WP_Error('preload_busy', 'A preload batch is running. Try again shortly.', ['status'=>409]); }
+        try { return $this->stop_locked(); } finally { Utilities\Lock::release($lock); }
+    }
+    private function stop_locked(  ) {
 		delete_option( self::QUEUE_OPTION );
 		delete_option( self::PROCESSED_OPTION );
 		update_option( self::STATE_OPTION, [
 			'status'    => 'cancelled',
 			'total'     => 0,
 			'processed' => 0,
+            'failed' => 0,
 			'started'   => 0,
 			'finished'  => time(),
 		], false );
@@ -246,6 +278,7 @@ class Preload {
 			'status'    => 'idle',
 			'total'     => 0,
 			'processed' => 0,
+            'failed' => 0,
 			'started'   => 0,
 			'finished'  => 0,
 		];
@@ -273,7 +306,12 @@ class Preload {
 	 *
 	 * @param string $url
 	 */
-	public function enqueue_url( $url ) {
+    public function enqueue_url( $url ) {
+        $lock = Utilities\Lock::acquire('preload-' . get_current_blog_id());
+        if (!$lock) { return new \WP_Error('preload_busy', 'A preload batch is running. Try again shortly.', ['status'=>409]); }
+        try { return $this->enqueue_url_locked($url); } finally { Utilities\Lock::release($lock); }
+    }
+    private function enqueue_url_locked( $url ) {
 		$url = $this->normalize_url( $url );
 		if ( ! $url ) {
 			return;
@@ -292,6 +330,7 @@ class Preload {
 			return;
 		}
 
+        if (count($queue)>=50000) { return; }
 		$queue[] = $url;
 		update_option( self::QUEUE_OPTION, array_values( $queue ), false );
 
@@ -325,61 +364,57 @@ class Preload {
 	/**
 	 * Process the next batch of URLs from the queue.
 	 */
-	public function process_queue() {
-		$queue = get_option( self::QUEUE_OPTION, [] );
-		if ( ! is_array( $queue ) || empty( $queue ) ) {
-			$state = get_option( self::STATE_OPTION, [] );
-			if ( is_array( $state ) && isset( $state['status'] ) && 'running' === $state['status'] ) {
-				$state['status']   = 'completed';
-				$state['finished'] = time();
-				update_option( self::STATE_OPTION, $state, false );
-			}
-			// Nothing left: with automatic preloading off, the processor is no
-			// longer needed and unschedules itself.
-			$this->maybe_schedule_cron();
-			return;
-		}
-
-		$batch_size = isset( $this->settings->preload_batch_size ) ? max( 1, (int) $this->settings->preload_batch_size ) : 5;
-		$batch      = array_splice( $queue, 0, $batch_size );
-
-		// Save updated queue first so a long fetch doesn't reprocess the same URL.
-		update_option( self::QUEUE_OPTION, array_values( $queue ), false );
-
-		$processed = get_option( self::PROCESSED_OPTION, [] );
-		if ( ! is_array( $processed ) ) {
-			$processed = [];
-		}
-
-		foreach ( $batch as $url ) {
-			$this->fetch_url( $url );
-			$processed[] = $url;
-		}
-
-		// Cap processed list to prevent it from growing without bound on huge sites.
-		$cap = (int) apply_filters( 'ezcache_preload_processed_cap', 50000 );
-		if ( count( $processed ) > $cap ) {
-			$processed = array_slice( $processed, -1 * $cap );
-		}
-
-		update_option( self::PROCESSED_OPTION, $processed, false );
-
-		$state = get_option( self::STATE_OPTION, [] );
-		if ( ! is_array( $state ) ) {
-			$state = [];
-		}
-		$state['processed']  = ( isset( $state['processed'] ) ? (int) $state['processed'] : 0 ) + count( $batch );
-		$state['last_batch'] = time();
-		$state['status']     = empty( $queue ) ? 'completed' : 'running';
-		if ( 'completed' === $state['status'] ) {
-			$state['finished'] = time();
-		}
-		update_option( self::STATE_OPTION, $state, false );
-
-		if ( 'completed' === $state['status'] ) {
-			$this->maybe_schedule_cron(); // drops the processor when automatic preloading is off
-		}
-	}
+    public function process_queue() {
+        $lock = Utilities\Lock::acquire('preload-' . get_current_blog_id());
+        if (!$lock) { return; }
+        try {
+            $this->settings = Settings::get_settings();
+            $this->deadline = microtime(true) + 15;
+            $batch_size = max(1, min(50, (int)$this->settings->preload_batch_size));
+            $seen = [];
+            for ($i=0; $i<$batch_size && microtime(true)<$this->deadline; $i++) {
+                if (Settings::is_disabled()) { $this->stop_locked(); return; }
+                $queue = (array)get_option(self::QUEUE_OPTION, []);
+                if (!$queue) { break; }
+                $url = reset($queue);
+                if (isset($seen[$url])) { break; } // At most one attempt per URL per batch.
+                $seen[$url] = true;
+                $ok = $this->fetch_url($url);
+                if (Settings::is_disabled()) { $this->stop_locked(); return; }
+                // Keep work in the queue until fetch completes. A killed worker retries it.
+                $queue = (array)get_option(self::QUEUE_OPTION, []);
+                $state = (array)get_option(self::STATE_OPTION, []);
+                $key = hash('sha256', $url);
+                $queue = array_values(array_diff($queue, [$url]));
+                if ($ok === true) {
+                    $state['processed'] = ($state['processed'] ?? 0) + 1;
+                    unset($state['attempts'][$key]);
+                    $processed = (array)get_option(self::PROCESSED_OPTION, []);
+                    $processed[] = $url;
+                    update_option(self::PROCESSED_OPTION, array_slice(array_unique($processed), -50000), false);
+                } else {
+                    $attempt = ($state['attempts'][$key] ?? 0) + 1;
+                    $state['last_error'] = is_wp_error($ok) ? $ok->get_error_message() : 'Fetch failed';
+                    if ($attempt < 3) { $state['attempts'][$key] = $attempt; $queue[] = $url; }
+                    else {
+                        unset($state['attempts'][$key]);
+                        $state['failed'] = ($state['failed'] ?? 0) + 1;
+                        $state['failed_urls'] = array_slice(array_merge($state['failed_urls'] ?? [], [$url]), -50);
+                    }
+                }
+                update_option(self::QUEUE_OPTION, $queue, false);
+                $state['last_batch'] = time();
+                update_option(self::STATE_OPTION, $state, false);
+            }
+            $state = (array)get_option(self::STATE_OPTION, []);
+            if (!$this->has_pending_queue() && ($state['status'] ?? '') === 'running') {
+                $state['status'] = !empty($state['failed']) ? 'failed' : 'completed';
+                $state['finished'] = time();
+                update_option(self::STATE_OPTION, $state, false);
+            }
+            $this->maybe_schedule_cron();
+        } finally { Utilities\Lock::release($lock); }
+    }
 
 	/**
 	 * Fetch a single URL with both desktop and mobile user agents to populate
@@ -398,10 +433,11 @@ class Preload {
 		);
 
 		$args = [
-			'timeout'             => 30,
+			'timeout'             => max(0.1, min(5, ($this->deadline ?: microtime(true)+5) - microtime(true))),
+            'limit_response_size' => 2*1024*1024,
 			'redirection'         => 3,
 			'blocking'            => true,
-			'sslverify'           => apply_filters( 'https_local_ssl_verify', false ),
+			'sslverify'           => $this->verify_ssl_for( $url ),
 			'user-agent'          => $desktop_ua,
 			'headers'             => [
 				'X-Ezcache-Preload' => '1',
@@ -409,19 +445,25 @@ class Preload {
 			],
 		];
 
-		wp_safe_remote_get( $url, $args );
+        $response = wp_safe_remote_get($url, $args);
+        if (is_wp_error($response)) { return $response; }
+        if ((int)wp_remote_retrieve_response_code($response) !== 200) { return new \WP_Error('preload_http', 'Preload did not return HTTP 200.'); }
 
 		if ( ! empty( $this->settings->separate_mobile_cache ) ) {
 			$args['user-agent'] = $mobile_ua;
-			wp_safe_remote_get( $url, $args );
+            $args['timeout'] = max(0.1, min(5, $this->deadline - microtime(true)));
+            $mobile = wp_safe_remote_get($url, $args);
+            if (is_wp_error($mobile)) { return $mobile; }
+            if ((int)wp_remote_retrieve_response_code($mobile) !== 200) { return new \WP_Error('preload_http', 'Mobile preload did not return HTTP 200.'); }
 		}
 
 		// Optionally extract internal links from the homepage to seed the queue.
 		if ( $this->is_homepage( $url ) && ! empty( $this->settings->preload_crawl_homepage_links ) ) {
-			$this->seed_from_homepage( $url );
+			$this->seed_from_homepage( $url, $response );
 		}
 
 		Logger::log( 'ezCache Preload fetched ' . $url );
+        return true;
 	}
 
 	/**
@@ -434,15 +476,33 @@ class Preload {
 		return untrailingslashit( $url ) === untrailingslashit( home_url() );
 	}
 
+
+	/**
+	 * Certificate checks for a request the preload makes. To this site itself they
+	 * follow WordPress's rule for loopback requests (off unless the site says
+	 * otherwise), as in every version before 2.7.0: with them always on, the
+	 * preload stopped working on sites whose own certificate the server cannot
+	 * verify. A sitemap on another host is always verified.
+	 *
+	 * @param string $url
+	 * @return bool
+	 */
+	protected function verify_ssl_for( $url ) {
+		$host = strtolower( (string) parse_url( (string) $url, PHP_URL_HOST ) );
+		$own  = strtolower( (string) parse_url( home_url(), PHP_URL_HOST ) );
+
+		return ( '' !== $host && $host === $own ) ? (bool) apply_filters( 'https_local_ssl_verify', false ) : true;
+	}
 	/**
 	 * Crawl the homepage HTML and seed the queue with internal links found there.
 	 *
 	 * @param string $url
 	 */
-	protected function seed_from_homepage( $url ) {
-		$response = wp_safe_remote_get( $url, [
-			'timeout'    => 30,
-			'sslverify'  => false,
+	protected function seed_from_homepage( $url, $response = null ) {
+		$response = $response ?: wp_safe_remote_get( $url, [
+			'timeout'    => 5,
+            'limit_response_size' => 2*1024*1024,
+			'sslverify'  => $this->verify_ssl_for( $url ),
 			'user-agent' => 'ezCache Preload Crawler',
 		] );
 
@@ -546,13 +606,15 @@ class Preload {
 	 * @return array
 	 */
 	protected function parse_sitemap( $sitemap_url, $depth = 0 ) {
-		if ( $depth > 3 ) {
+		if ( $depth > 3 || count($this->sitemaps_seen) >= 20 || isset($this->sitemaps_seen[$sitemap_url]) || ($this->sitemap_deadline && microtime(true) >= $this->sitemap_deadline) || wp_parse_url($sitemap_url, PHP_URL_HOST) !== wp_parse_url(home_url(), PHP_URL_HOST) ) {
 			return [];
 		}
 
+        $this->sitemaps_seen[$sitemap_url] = true;
 		$response = wp_safe_remote_get( $sitemap_url, [
-			'timeout'    => 30,
-			'sslverify'  => false,
+			'timeout'    => 5,
+            'limit_response_size' => 2*1024*1024,
+			'sslverify'  => $this->verify_ssl_for( $sitemap_url ),
 			'user-agent' => 'ezCache Preload',
 		] );
 
@@ -566,7 +628,7 @@ class Preload {
 		}
 
 		libxml_use_internal_errors( true );
-		$xml = simplexml_load_string( $body );
+		$xml = simplexml_load_string( $body, 'SimpleXMLElement', LIBXML_NONET );
 		if ( false === $xml ) {
 			return [];
 		}
@@ -576,6 +638,7 @@ class Preload {
 		// Sitemap index: contains <sitemap><loc>...</loc></sitemap> entries.
 		if ( isset( $xml->sitemap ) ) {
 			foreach ( $xml->sitemap as $entry ) {
+                if (count($urls)>=5000) { break; }
 				$loc = (string) $entry->loc;
 				if ( $loc ) {
 					$urls = array_merge( $urls, $this->parse_sitemap( $loc, $depth + 1 ) );
@@ -586,6 +649,7 @@ class Preload {
 		// Regular sitemap: contains <url><loc>...</loc></url> entries.
 		if ( isset( $xml->url ) ) {
 			foreach ( $xml->url as $entry ) {
+                if (count($urls)>=5000) { break; }
 				$loc = (string) $entry->loc;
 				if ( $loc ) {
 					$urls[] = $loc;

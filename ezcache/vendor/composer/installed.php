@@ -1,0 +1,41 @@
+<?php return array(
+    'root' => array(
+        'name' => 'upress/ezcache',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'cc156e92648893f115965b4a89c384d307307e2d',
+        'type' => 'wordpress-plugin',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'dev' => false,
+    ),
+    'versions' => array(
+        'matthiasmullie/minify' => array(
+            'pretty_version' => '1.3.76',
+            'version' => '1.3.76.0',
+            'reference' => 'bbd1844c257a49488d914f4c7c7ba74cc8861fdc',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../matthiasmullie/minify',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'matthiasmullie/path-converter' => array(
+            'pretty_version' => '1.1.3',
+            'version' => '1.1.3.0',
+            'reference' => 'e7d13b2c7e2f2268e1424aaed02085518afa02d9',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../matthiasmullie/path-converter',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'upress/ezcache' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'cc156e92648893f115965b4a89c384d307307e2d',
+            'type' => 'wordpress-plugin',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+    ),
+);

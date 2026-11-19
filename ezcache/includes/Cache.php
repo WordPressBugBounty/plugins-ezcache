@@ -16,6 +16,7 @@ use Upress\EzCache\FileOptimizer\JsMinifier;
 use Upress\EzCache\FileOptimizer\JsCombiner;
 use Upress\EzCache\FileOptimizer\WebpConverter;
 use Upress\EzCache\ThirdParty\Minify_HTML;
+use Upress\EzCache\Utilities\Cron;
 use Upress\EzCache\Utilities\Logger;
 use Upress\EzCache\PremiumFeatures;
 
@@ -29,7 +30,7 @@ class Cache {
 	protected $settings;
 	protected $cache_start_time;
 	protected $webp_processor;
-	protected $root_cache_dir = WP_CONTENT_DIR . '/cache/ezcache/';
+	protected $root_cache_dir = WP_CONTENT_DIR . '/cache/ezcache/v2/';
 
 	public static function instance() {
 		if ( ! self::$instance ) {
@@ -43,13 +44,16 @@ class Cache {
 		$this->settings         = Settings::get_settings();
 		$this->webp_processor   = new ConvertWebpProcess();
 		$this->cache_start_time = microtime( true );
+		if ( function_exists( 'add_filter' ) ) {
+			add_filter( 'nocache_headers', [ __CLASS__, 'note_nocache_headers' ] );
+		}
 	}
 
 	/**
 	 * @return string
 	 */
 	public function get_default_cache_path() {
-		$hostname = preg_replace( '/:.*$/', '', $this->get_http_host() );
+		$hostname = preg_replace('/[^a-z0-9.-]/i', '_', $this->get_http_host());
 
 		return $this->root_cache_dir . $hostname . '/';
 	}
@@ -65,7 +69,8 @@ class Cache {
 
 			return htmlentities( $host );
 		} elseif ( function_exists( 'get_option' ) ) {
-			return (string) parse_url( get_option( 'home' ), PHP_URL_HOST );
+			$parts = parse_url(get_option('home'));
+            return ($parts['host'] ?? '') . (isset($parts['port']) ? ':' . $parts['port'] : '');
 		}
 
 		return '';
@@ -168,32 +173,179 @@ class Cache {
 	 *
 	 * @return string|bool
 	 */
-	public function get_relative_url( $url ) {
-		$site_url  = site_url();
-		if ( false === strpos( $url, $site_url ) ) {
-			if ( preg_match( '`^(https?:)?//([^/]+)(/.*)?$`i', $url, $matches ) ) {
-				$url = isset( $matches[3] ) ? $matches[3] : '';
-			}
-		} else {
-			$url = str_replace( $site_url, '', $url );
-			if ( 0 !== strpos( $url, '/' ) ) {
-				$url = '/' . $url;
-			}
-		}
-
-		if ( preg_match( '/^https?:\/\//i', $url ) ) {
-			return false;
-		}
-
-		return $url;
-	}
+    public function get_relative_url( $url ) {
+        if (!is_string($url) || $url === '') { return false; }
+        $parts = parse_url($url);
+        if (false === $parts || (isset($parts['host']) && strtolower($parts['host']) !== strtolower((string)parse_url(home_url(),PHP_URL_HOST)))) { return false; }
+        return ($parts['path'] ?? '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
+    }
 
 	/**
 	 * Should we serve the cached file
 	 *
 	 * @return bool
 	 */
+    public function refresh_settings() { $this->settings = Settings::get_settings(); }
+
+    /**
+     * Which signals make a page private.
+     *
+     * In every mode: a logged-in user, a WooCommerce session or cart, a
+     * password-protected post, a comment author (as request cookies or as
+     * cookies the response sets), the site's own "rejected cookies", HTTP
+     * authentication, DONOTCACHEPAGE, a redirect, and an explicit
+     * private/no-store/no-cache header from WordPress or a plugin.
+     *
+     * Only in strict mode (setting strict_response_privacy, off by default): an
+     * open PHP session, the session cookie, and any other cookie the response
+     * sets. 2.7.0 treated all of those as private unconditionally. On a real
+     * shop that turned most of the page cache off: a plugin opens a session for
+     * every visitor (category page 0.05 s -> 1.2 s on every view) and the theme
+     * sets a "recently viewed" cookie on every product page. Such cookies say
+     * something about the visitor, not about the page; every version before
+     * 2.7.0, and other page caches, cache these pages. Strict mode is there for
+     * sites that print per-visitor content from $_SESSION or from their own
+     * cookies.
+     */
+    private function strict_privacy() {
+        return ! empty( $this->settings->strict_response_privacy );
+    }
+
+    /** Cookie names that mark a visitor or a response as private in every mode. */
+    private function is_private_cookie( $name ) {
+        $name = (string) $name;
+        if ( preg_match('/^(wp_woocommerce_session_|woocommerce_items_in_cart|woocommerce_cart_hash|wp-postpass_|wordpress_sec_|wordpress_logged_in_|comment_author_)/i', $name) ) { return true; }
+        // The site's own list ("Rejected cookies" setting), read as on the request side.
+        foreach ( preg_split('/[\r\n]+/', trim( (string) ( $this->settings->rejected_cookies ?? '' ) ), -1, PREG_SPLIT_NO_EMPTY) as $pattern ) {
+            if ( self::cookie_pattern_matches( $pattern, $name ) ) { return true; }
+        }
+        return false;
+    }
+
+    /**
+     * Whether one line of the "Rejected cookies" setting matches a text.
+     *
+     * A line is literal text with * as a wildcard. Up to 2.6.9 the lines were
+     * joined into one regular expression, so sites have entries such as
+     * "member_session_.*" or "(vip|club)_id"; a line that is a valid expression
+     * therefore still matches as one. Each line is tried on its own: joined, a
+     * single invalid line ("*_in_cart") switched the whole list off.
+     */
+    private static function cookie_pattern_matches( $pattern, $text ) {
+        $pattern = trim( (string) $pattern );
+        if ( '' === $pattern ) { return false; }
+        if ( preg_match( '#' . str_replace( '\\*', '.*', preg_quote( $pattern, '#' ) ) . '#', (string) $text ) ) { return true; }
+        return 1 === @preg_match( '#' . str_replace( '#', '\\#', $pattern ) . '#', (string) $text );
+    }
+
+    /** Name of PHP's session cookie (PHPSESSID unless the site renamed it). */
+    private function session_cookie_name() {
+        $name = function_exists('session_name') ? (string) session_name() : '';
+        return '' !== $name ? $name : 'PHPSESSID';
+    }
+
+    private function session_blocks_cache() {
+        return $this->strict_privacy() && function_exists('session_status') && session_status()===PHP_SESSION_ACTIVE;
+    }
+
+    /** Checks available before WordPress has resolved a query or a user. */
+    private function request_is_public() {
+        if ( defined('DONOTCACHEPAGE') && DONOTCACHEPAGE ) { return false; }
+        if ( $this->session_blocks_cache() ) { return false; }
+        if ( ! empty($_SERVER['HTTP_AUTHORIZATION']) || ! empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) || isset($_SERVER['PHP_AUTH_USER']) ) { return false; }
+        if ( $this->has_login_cookie() || $this->has_comment_author_cookie() ) { return false; }
+        $session_cookie = $this->session_cookie_name();
+        foreach ( array_keys( $_COOKIE ) as $name ) {
+            if ( preg_match('/^(wp_woocommerce_session_|woocommerce_items_in_cart|woocommerce_cart_hash|wp-postpass_|wordpress_sec_|wordpress_logged_in_|comment_author_)/i', $name) ) { return false; }
+            if ( $this->strict_privacy() && ( 0 === stripos((string) $name, 'PHPSESSID') || 0 === strcasecmp((string) $name, $session_cookie) ) ) { return false; }
+        }
+        foreach ( ['_wpnonce','wc-ajax','add-to-cart','remove_item','removed_item','action','doing_wp_cron','add_to_wishlist','preview','rest_route','s'] as $param ) {
+            if ( isset($_GET[$param]) ) { return false; }
+        }
+        if ( ! empty($this->settings->no_cache_filtered_pages) && $this->is_filtered_request() ) { return false; }
+        if ( $this->url_exceeds_cache_limits() ) { return false; }
+        $uri = rawurldecode( (string) ($_SERVER['REQUEST_URI'] ?? '/') );
+        $path = explode('?', $uri, 2)[0];
+        if ( preg_match('#/(?:wp-admin|wp-json|cart|checkout|my-account)(?:/|$)#i', $path) ) { return false; }
+        foreach ( preg_split('/[\r\n]+/', trim((string)$this->settings->rejected_uri), -1, PREG_SPLIT_NO_EMPTY) as $pattern ) {
+            if ( preg_match('#^https?://#i', $pattern) ) { $pattern = (string) parse_url($pattern, PHP_URL_PATH); }
+            $pattern = '/' . trim($pattern, '/');
+            $regex = '#^' . str_replace('\\*', '.*', preg_quote($pattern, '#')) . '/?$#u';
+            if ( preg_match($regex, $path) || preg_match($regex, $uri) ) { return false; }
+        }
+        foreach ( preg_split('/[\r\n]+/', trim((string)$this->settings->rejected_user_agent), -1, PREG_SPLIT_NO_EMPTY) as $agent ) {
+            if ( false !== strpos($_SERVER['HTTP_USER_AGENT'] ?? '', trim($agent)) ) { return false; }
+        }
+        return true;
+    }
+
+    /** Set once WordPress or a plugin asked for "no cache" headers during this request. */
+    public static $nocache_requested = false;
+
+    /** Filter callback for nocache_headers; only takes note. */
+    public static function note_nocache_headers( $headers ) {
+        self::$nocache_requested = true;
+        return $headers;
+    }
+
+    public function response_is_public() {
+        if ( defined('DONOTCACHEPAGE') && DONOTCACHEPAGE ) { return false; }
+        // nocache_headers() was called for this response. Remembered here because a
+        // session_start() that follows replaces those headers with PHP's own pair,
+        // and that pair is tolerated below.
+        if ( self::$nocache_requested ) { return false; }
+        if ( $this->session_blocks_cache() ) { return false; }
+        $status = http_response_code();
+        if ( $status && 200 !== $status ) { return false; }
+        $headers = headers_list();
+        $strict  = $this->strict_privacy();
+        // PHP's session "nocache" limiter always sends this exact pair. It describes
+        // the session, not the page; WordPress and WooCommerce send different values
+        // (and a different Expires date) when they mean "do not cache this page".
+        $session_limiter = false;
+        foreach ( $headers as $header ) {
+            if ( 0 === stripos($header, 'Expires:') && false !== stripos($header, '19 Nov 1981') ) { $session_limiter = true; }
+        }
+        foreach ( $headers as $header ) {
+            if ( 0 === stripos($header, 'Location:') ) { return false; }
+            if ( 0 === stripos($header, 'Set-Cookie:') ) {
+                if ( $strict ) { return false; }
+                // Private cookies block; a cookie about the visitor (session id, "recently viewed") does not.
+                $cookie = trim( explode('=', substr($header, 11), 2)[0] );
+                if ( '' === $cookie || $this->is_private_cookie($cookie) ) { return false; }
+                // The visitor already carried this cookie and the page sets it again: the page
+                // was most likely built from it (a "recently viewed" list). It is sent to this
+                // visitor but not stored for everyone else. PHP stores "a.b" as "a_b".
+                if ( isset( $_COOKIE[ $cookie ] ) || isset( $_COOKIE[ str_replace( ['.', ' '], '_', $cookie ) ] ) ) { return false; }
+                continue;
+            }
+            if ( ! $strict && $session_limiter && 0 === stripos($header, 'Cache-Control:')
+                && 'no-store,no-cache,must-revalidate' === strtolower(preg_replace('/\s+/', '', substr($header,14))) ) { continue; }
+            if (0 === stripos($header, 'Cache-Control:') && preg_match('/(?:^|,)\s*(?:(?:private|no-store|no-cache)(?=[=,\s]|$)|(?:s-maxage|max-age)\s*=\s*"?0"?(?=[,\s]|$))/i', trim(substr($header,14)))) { return false; }
+            if (0 === stripos($header, 'Vary:')) {
+                foreach (explode(',',strtolower(substr($header,5))) as $field) {
+                    if (trim($field)!=='accept-encoding') { return false; }
+                }
+            }
+        }
+        return true;
+    }
+
 	public function should_serve_cached_data() {
+		// Asked on every request, before WordPress has loaded. Right after an update PHP
+		// can hold a mix of old and new plugin files for up to a minute; an error in
+		// here would then be an error page for every visitor. "Do not use the cache"
+		// is always a safe answer.
+		try {
+			return $this->request_may_use_cache();
+		} catch ( \Throwable $e ) {
+			return false;
+		}
+	}
+
+	private function request_may_use_cache() {
+        if (Settings::is_disabled()) { return false; }
+        if ( ! $this->request_is_public() ) { return false; }
 		// Dev Mode — bypass cache entirely
 		if ( self::is_dev_mode_active() ) {
 			return false;
@@ -273,15 +425,10 @@ class Cache {
 			return false;
 		}
 
-		// Don't cache pages where the rejected cookies are defined
-		if ( ! empty( $settings->rejected_cookies ) ) {
-			$rejected_cookies = preg_split( "/\\r\\n|\\r|\\n/u", trim( $settings->rejected_cookies ), - 1, PREG_SPLIT_NO_EMPTY );
-			$rejected_cookies = array_filter( $rejected_cookies );
-
-			if ( preg_match( '#(' . implode( '|', $rejected_cookies ) . ')#', var_export( $_COOKIE, true ) ) ) {
-				return false;
-			}
-		}
+        $cookies=(string)json_encode($_COOKIE);
+        foreach (preg_split('/[\r\n]+/',trim((string)$settings->rejected_cookies),-1,PREG_SPLIT_NO_EMPTY) as $pattern) {
+            if (self::cookie_pattern_matches($pattern,$cookies)) { return false; }
+        }
 
 		return true;
 	}
@@ -295,7 +442,7 @@ class Cache {
 	public function should_save_cache() {
 		global $wp_query;
 
-		if ( ! $this->should_serve_cached_data() ) {
+		if ( ! $this->should_serve_cached_data() || ! $this->response_is_public() ) {
 			return false;
 		}
 
@@ -660,58 +807,39 @@ class Cache {
 	 *
 	 * @return mixed|string
 	 */
-	public function get_current_url_cache_dir( $post_id = 0, $url = null ) {
-		static $url_cache_dir = [];
+    public function get_current_url_cache_dir( $post_id = 0, $url = null ) {
+        $uri = $post_id ? get_permalink($post_id) : ($url !== null ? $url : ($_SERVER['REQUEST_URI'] ?? '/'));
+        return md5( self::cache_key_path( $uri ) ) . '/';
+    }
 
-		if ( isset( $url_cache_dir[ $post_id ] ) ) {
-			return $url_cache_dir[ $post_id ];
-		}
-
-		$uri = strtolower( $url ? ( '/' . ltrim( $url, '/' ) ) : $_SERVER['REQUEST_URI'] );
-
-		$DONOTREMEMBER = 0;
-		if ( 0 !== $post_id ) {
-			$site_url  = site_url();
-			$permalink = get_permalink( $post_id );
-			if ( false === strpos( $permalink, $site_url ) ) {
-				$DONOTREMEMBER = 1;
-				if ( preg_match( '`^(https?:)?//([^/]+)(/.*)?$`i', $permalink, $matches ) ) {
-					$uri = isset( $matches[3] ) ? $matches[3] : '';
-				} elseif ( preg_match( '`^/([^/]+)(/.*)?$`i', $permalink, $matches ) ) {
-					$uri = $permalink;
-				} else {
-					$uri = '';
-				}
-			} else {
-				$uri = str_replace( $site_url, '', $permalink );
-				if ( 0 !== strpos( $uri, '/' ) ) {
-					$uri = '/' . $uri;
-				}
-			}
-		}
-
-		$uri = $this->deep_replace(
-			[
-				'..',
-				'\\',
-				'index.php',
-			],
-			preg_replace(
-				'/[ <>\'\"\r\n\t()]/',
-				'',
-				preg_replace( "/(\?.*)?(#.*)?$/", '', $uri )
-			)
-		);
-
-		$uri = md5( $uri );
-		$dir = str_replace( '..', '', str_replace( '//', '/', $uri . '/' ) );
-
-		if ( $DONOTREMEMBER == 0 ) {
-			$url_cache_dir[ $post_id ] = $dir;
-		}
-
-		return $dir;
-	}
+    /**
+     * The path that names a page in the cache: no query string, no fragment,
+     * lower-cased.
+     *
+     * A request path must not go through parse_url(). It reads "//shop/" as a
+     * host and "/tag/x/page:2" or "/shop/tax/product_cat:16/" as a port and
+     * returns no path at all, and such a page was then stored, and served, as
+     * the home page. Only an absolute URL (a permalink) loses its scheme and
+     * host here, with a pattern that cannot fail.
+     *
+     * Lower-casing keeps /%D7%A9/ and /%d7%a9/ on one entry, as every version
+     * before 2.7.0 did. Browsers send either form; a purge by permalink has to
+     * remove the copy visitors were actually served.
+     *
+     * @param string $uri Request URI, path or absolute URL.
+     * @return string
+     */
+    public static function cache_key_path( $uri ) {
+        $uri = (string) $uri;
+        if ( preg_match( '#^[a-z][a-z0-9+.\-]*://[^/?\#]*#i', $uri, $match ) ) {
+            $uri = (string) substr( $uri, strlen( $match[0] ) );
+        }
+        $uri = (string) substr( $uri, 0, strcspn( $uri, '?#' ) );
+        if ( '' === $uri || '/' !== $uri[0] ) {
+            $uri = '/' . $uri;
+        }
+        return strtolower( $uri );
+    }
 
 	/**
 	 * Get the cache directory path
@@ -957,7 +1085,7 @@ class Cache {
 		}
 		$norm = $this->normalize_query_string( $qs );
 
-		return $scheme . $host . $path . ( '' !== $norm ? '?' . $norm : '' );
+		return $scheme . $host . $path . ( '' !== $norm ? '?' . $norm : '' ) . '#ezcache=' . $this->get_cache_filename();
 	}
 
 	public function get_cache_filename() {
@@ -1013,6 +1141,8 @@ class Cache {
 			$cached_html = \Upress\EzCache\RedisObjectCache::get_page( $current_url );
 			if ( false !== $cached_html && '' !== $cached_html ) {
 				header( 'X-Cached-With: ezCache (Redis)' );
+				// As before 2.7.0. Naming User-Agent and Accept here makes a proxy in front of
+				// the site (Varnish, a CDN) keep one copy per browser version.
 				header( 'Vary: Accept-Encoding, Cookie' );
 				echo $cached_html;
 				exit;
@@ -1025,12 +1155,18 @@ class Cache {
 		$cache_file = $cache_file . '.gz';
 		$filesize   = file_exists( $cache_file ) ? @filesize( $cache_file ) : false;
 
+        $mtime = $filesize ? @filemtime($cache_file) : false;
+        $ttl = (int) $this->settings->cache_lifetime;
+        if ( $filesize && $ttl > 0 && ( ! $mtime || $mtime + $ttl <= time() ) ) { @unlink($cache_file); return; }
+
 		if ( ! $filesize ) {
 			// the file is empty, we have nothing to serve
 			return;
 		}
 
 		header( "X-Cached-With: ezCache" );
+		// As before 2.7.0: with User-Agent and Accept in this header a proxy in front of
+		// the site (Varnish, a CDN) keeps one copy of every page per browser version.
 		header( "Vary: Accept-Encoding, Cookie" );
 		header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', filemtime( $cache_file ) ) . ' GMT' );
 
@@ -1104,7 +1240,7 @@ class Cache {
 			return;
 		}
 
-		ob_start( [ $this, 'optimize_and_write_cache_file' ] );
+		ob_start( [ $this, 'buffer_callback' ] );
 	}
 
 	/**
@@ -1114,6 +1250,25 @@ class Cache {
 	 *
 	 * @return string
 	 */
+	/**
+	 * Output-buffer callback. PHP throws the page away when its buffer callback
+	 * fails, so anything thrown while optimizing or saving ends here and the page
+	 * goes out the way WordPress produced it. (Right after an update the classes
+	 * used in there can briefly be a mix of old and new files.)
+	 *
+	 * @param string $buffer
+	 * @return string
+	 */
+	public function buffer_callback( $buffer ) {
+		try {
+			return $this->optimize_and_write_cache_file( $buffer );
+		} catch ( \Throwable $e ) {
+			Logger::log( 'ezCache: page sent without optimization: ' . $e->getMessage() );
+
+			return $buffer;
+		}
+	}
+
 	public function optimize_and_write_cache_file( $buffer ) {
 		global $wpdb;
 
@@ -1228,6 +1383,7 @@ class Cache {
 		}
 
 		$buffer = apply_filters( 'ezcache_before_save_cache', $buffer );
+        if ( ! $this->response_is_public() ) { return $buffer; }
 
 		// ── Redis Full-Page Cache write ───────────────────────
 		// Mirror the cached HTML to Redis when the flag is on. TTL matches
@@ -1237,7 +1393,7 @@ class Cache {
 			&& class_exists( '\\Upress\\EzCache\\RedisObjectCache' )
 		) {
 			$current_url = $this->build_fullpage_url();
-			$ttl = ! empty( $settings->cache_lifetime ) ? (int) $settings->cache_lifetime : 604800;
+			$ttl = (int) $settings->cache_lifetime;
 			\Upress\EzCache\RedisObjectCache::set_page( $current_url, $buffer, $ttl );
 		}
 
@@ -1249,19 +1405,12 @@ class Cache {
 			}
 		}
 
-		// write gzipped file
-		$handle = @fopen( $cache_file, 'w' );
-
-		if ( $handle && @flock( $handle, LOCK_EX ) ) {
-			fwrite( $handle, gzencode( $buffer, 6, FORCE_GZIP ) );
-			flock( $handle, LOCK_UN );
-		} else {
-			Logger::log( 'ezCache could not write to ' . str_replace( ABSPATH, '', $cache_file ) );
-		}
-
-		if ( $handle ) {
-			fclose( $handle );
-		}
+        // Same-directory rename prevents readers from seeing a partially written gzip.
+        // Not flushed to disk: a cached page lost in a power cut is simply rendered again,
+        // and an fsync for every page that is cached is paid by the visitor waiting for it.
+        if (!Utilities\AtomicFile::write($cache_file, gzencode($buffer,6,FORCE_GZIP), 0644, false)) {
+            Logger::log('ezCache could not write cache file.');
+        }
 
 		return $buffer;
 	}
@@ -1322,6 +1471,17 @@ class Cache {
 	 *
 	 * @param float $purge_budget Seconds to spend deleting right away.
 	 */
+    public function migrate_legacy_cache() {
+        $legacy = WP_CONTENT_DIR . '/cache/ezcache/';
+        $trash = $this->root_cache_dir . self::TRASH_DIR;
+        foreach (array_merge(glob($legacy . '*', GLOB_ONLYDIR) ?: [], is_dir($legacy.'.trash') ? [$legacy.'.trash'] : []) as $path) {
+            if (basename($path) === 'v2' || is_link($path)) { continue; }
+            self::make_dir($trash);
+            if (@rename($path, $trash . '/legacy-' . bin2hex(random_bytes(16)))) { $this->schedule_purge(); }
+        }
+        $this->purge_trash(2);
+    }
+
 	public function discard_cache_contents( $purge_budget = 5 ) {
 		$root = $this->root_cache_dir;
 		if ( ! is_dir( $root ) ) {
@@ -1331,7 +1491,7 @@ class Cache {
 		$trash = $root . self::TRASH_DIR;
 		foreach ( (array) glob( $root . '*', GLOB_ONLYDIR ) as $dir ) { // dot-directories such as .trash are not matched
 			if ( ! is_dir( $trash ) ) {
-				@mkdir( $trash, 0755, true );
+				self::make_dir( $trash );
 			}
 			$target = $trash . '/' . basename( $dir ) . '.' . time() . '.' . mt_rand( 1000, 9999 );
 			if ( ! is_dir( $trash ) || ! @rename( $dir, $target ) ) {
@@ -1401,18 +1561,21 @@ class Cache {
 	 * Make sure a purge run is scheduled (WP-Cron single event).
 	 */
 	public function schedule_purge() {
+        if (Settings::is_disabled()) { return; }
 		if ( ! function_exists( 'wp_next_scheduled' ) || ! function_exists( 'wp_schedule_single_event' ) ) {
 			return;
 		}
-		if ( ! wp_next_scheduled( self::PURGE_HOOK ) ) {
-			wp_schedule_single_event( time() + 30, self::PURGE_HOOK );
-		}
+		// Cron::ensure also gets an event that is stuck in the past run and, when WordPress
+		// does not spawn WP-Cron itself (DISABLE_WP_CRON), triggers one run.
+		Cron::ensure( self::PURGE_HOOK, 30 );
 	}
 
 	/**
 	 * Preload the homepage and immediately create cache for it
 	 */
 	public function preload_homepage() {
+        if (Settings::is_disabled()) { return; }
+        if ( (defined('EZCACHE_ACTIVATING') || defined('EZCACHE_DEACTIVATING') || get_transient('ezcache_deactivating')) ) { return; }
 		$desktop_ua = apply_filters(
 			'ezcache_desktop_useragent',
 			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36 (ezCache Preload)'
@@ -1433,45 +1596,35 @@ class Cache {
 		] );
 	}
 
-	function delete_missing_webp_images( $delete_all = false ) {
-		global $wpdb;
+    function delete_missing_webp_images( $delete_all = false ) {
+        if ($delete_all) { return (new Rest\WebpController())->destroy(); }
+        // Ordinary page-cache invalidation must not scan the media library.
+        return true;
+    }
 
-		// delete the actual files
-		$ids    = [ 0 ];
-		$where  = $delete_all ? '' : "WHERE `status` = 'completed'";
-		$images = $wpdb->get_results( "SELECT * FROM `{$wpdb->prefix}ezcache_webp_images` {$where}" );
-		foreach ( $images as $image ) {
-			if ( ! file_exists( $image->webp_path ) ) {
-				$ids[] = $image->id;
-			} elseif ( ( $delete_all || ! file_exists( $image->path ) ) && file_exists( $image->webp_path ) ) {
-				unlink( $image->webp_path );
-				$ids[] = $image->id;
-			}
-		}
-
-		// clean the database
-		$wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM `{$wpdb->prefix}ezcache_webp_images` WHERE `status` = 'failed' OR `id` IN ( " . substr( str_repeat( "%d, ", count( $ids ) ), 0, - 2 ) . " )",
-				$ids
-			)
-		);
-
-		$wpdb->query( "OPTIMIZE TABLE `{$wpdb->prefix}ezcache_webp_images`" );
-	}
-
-	function delete_all_webp_images() {
-		$this->delete_missing_webp_images( true );
-	}
+    function delete_all_webp_images() { return $this->delete_missing_webp_images(true); }
 
 	/**
 	 * Clear all caches
 	 *
 	 * @param bool $clear_webp Should deleting cache clear the WebP images
 	 */
+	/**
+	 * Create a cache folder so that it belongs to the site's owner also when a
+	 * command run as root (WP-CLI) creates it: in a root-owned cache folder the
+	 * web server could not store a single page.
+	 */
+	private static function make_dir( $dir ) {
+		if ( method_exists( '\Upress\EzCache\Utilities\AtomicFile', 'make_dir' ) ) {
+			return Utilities\AtomicFile::make_dir( $dir );
+		}
+
+		return @wp_mkdir_p( $dir );
+	}
+
 	public function clear_cache( $clear_webp = false ) {
 		$this->discard_cache_contents();
-		@wp_mkdir_p( $this->root_cache_dir );
+		self::make_dir( $this->root_cache_dir );
 
 		if ( $clear_webp ) {
 			$this->delete_all_webp_images();
@@ -1481,10 +1634,11 @@ class Cache {
 
 		$this->purge_varnish_cache();
 
-		// Also flush Redis (both object cache and full-page keys live under ezcache:*).
-		// If Redis is disabled or unavailable this is a no-op.
-		if ( class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
-			\Upress\EzCache\RedisObjectCache::flush();
+		// The pages kept in Redis go with the page cache. The object cache (options,
+		// transients, locks) does not: emptying it on every purge made each purge a
+		// full cold start for the database as well.
+		if ( ! empty($this->settings->enable_redis_fullpage) && method_exists( '\Upress\EzCache\RedisObjectCache', 'flush_pages' ) ) {
+			\Upress\EzCache\RedisObjectCache::flush_pages();
 		}
 
 		$this->preload_homepage();
@@ -1509,7 +1663,7 @@ class Cache {
 		$this->purge_varnish_cache();
 
 		// Remove the matching Redis full-page key so the next request rebuilds.
-		if ( class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
+		if ( ! empty( $this->settings->enable_redis_fullpage ) && class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
 			$url = get_permalink( $post_id );
 			if ( $url ) {
 				\Upress\EzCache\RedisObjectCache::delete_page( $url );
@@ -1531,7 +1685,7 @@ class Cache {
 
 		$this->purge_varnish_cache();
 
-		if ( class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
+		if ( ! empty( $this->settings->enable_redis_fullpage ) && class_exists( '\\Upress\\EzCache\\RedisObjectCache' ) ) {
 			\Upress\EzCache\RedisObjectCache::delete_page( $url );
 		}
 
@@ -1588,7 +1742,7 @@ class Cache {
 				'Host'       => $host,
 				'User-Agent' => $desktop_ua,
 			],
-			'sslverify' => false,
+			'sslverify' => !in_array($purge_host, ['127.0.0.1','[::1]','localhost'], true),
 		];
 		$response = wp_remote_request( $schema . $purge_host . '/.*', $request_args );
 		if ( is_wp_error( $response ) || $response['response']['code'] != '200' ) {
@@ -1609,7 +1763,9 @@ class Cache {
 
 		// First finish any background deletion left by clear_cache(), then
 		// walk the live cache only (.trash is skipped).
-		$this->purge_trash( 20 );
+		$this->purge_trash( 2 );
+        if ((int)$settings->cache_lifetime <= 0) { return; }
+        $deadline = microtime(true) + 5;
 		$trash = $this->root_cache_dir . self::TRASH_DIR;
 
 		try {
@@ -1628,11 +1784,14 @@ class Cache {
 		}
 
 		foreach ( $files as $file ) {
+            if (microtime(true) > $deadline) { break; }
 			if ( is_array( $file ) ) {
 				$file = array_shift( $file );
 			}
 
-			$stats = stat( $file );
+			if (is_link($file)) { continue; }
+            $stats = @stat( $file );
+            if (!$stats) { continue; }
 			if ( $stats['mtime'] > ( time() - $settings->cache_lifetime ) ) {
 				// skip not expired files
 				continue;
@@ -1648,6 +1807,7 @@ class Cache {
 	 */
 	public function get_cache_stats() {
 		$settings  = $this->settings;
+        $deadline = microtime(true)+2; $partial=false;
 		$cache_dir = $this->get_default_cache_path();
 
 		try {
@@ -1662,7 +1822,6 @@ class Cache {
 			}
 		}
 
-		$raw_data = [];
 
 		$mobile_count          = 0;
 		$mobile_size           = 0;
@@ -1682,20 +1841,19 @@ class Cache {
 		$css_expired_size      = 0;
 
 		foreach ( $files as $file ) {
+            if (microtime(true)>$deadline) { $partial=true; break; }
 			if ( is_array( $file ) ) {
 				$file = array_shift( $file );
 			}
 
-			$stats   = stat( $file );
-			$expired = $stats['mtime'] <= ( time() - $settings->cache_lifetime );
+			if (is_link($file)) { continue; }
+            $stats = @stat($file);
+            if (!$stats) { continue; }
+			$expired = $settings->cache_lifetime > 0 && $stats['mtime'] <= ( time() - $settings->cache_lifetime );
 
-			$raw_data[] = [
-				'path'    => $file,
-				'stats'   => $stats,
-				'expired' => $expired,
-			];
 
-			if ( preg_match( '/^.+?-mobile\.html(\.gz)?$/i', $file ) ) {
+
+			if ( preg_match( '/^.+?-mobile(?:-webp)?\.html(\.gz)?$/i', $file ) ) {
 				if ( ! $expired ) {
 					$mobile_count ++;
 					$mobile_size += $stats['size'];
@@ -1730,9 +1888,8 @@ class Cache {
 			}
 		}
 
-		// we want to count only the number of pages which have cache, but we have 2 files for each page
-		$mobile_count  = $mobile_count / 2;
-		$desktop_count = $desktop_count / 2;
+		// Count stored variants; only gzip HTML is written by this version.
+
 
 
 		global $wpdb;
@@ -1747,7 +1904,7 @@ class Cache {
 			$webp_images_original_size = intval( $results->total_original_size );
 		}
 
-		return compact( 'webp_images', 'webp_images_original_size', 'webp_images_size', 'mobile_count', 'desktop_count', 'mobile_expired_count', 'desktop_expired_count', 'mobile_size', 'desktop_size', 'mobile_expired_size', 'desktop_expired_size', 'css_size', 'css_count', 'js_count', 'js_size', 'css_expired_count', 'css_expired_size', 'js_expired_count', 'js_expired_size' );
+		return compact( 'partial', 'webp_images', 'webp_images_original_size', 'webp_images_size', 'mobile_count', 'desktop_count', 'mobile_expired_count', 'desktop_expired_count', 'mobile_size', 'desktop_size', 'mobile_expired_size', 'desktop_expired_size', 'css_size', 'css_count', 'js_count', 'js_size', 'css_expired_count', 'css_expired_size', 'js_expired_count', 'js_expired_size' );
 	}
 
 	/**
@@ -1779,27 +1936,24 @@ class Cache {
 	 * @return bool|string
 	 */
 	public static function url_to_path( $url ) {
-		$root_dir = trailingslashit( dirname( WP_CONTENT_DIR ) );
-		$root_url = str_replace( wp_basename( WP_CONTENT_DIR ), '', content_url() );
-		$url_host = wp_parse_url( $url, PHP_URL_HOST );
-
-		// relative path.
-		if ( null === $url_host ) {
-			$subdir_levels = substr_count( preg_replace( '/https?:\/\//', '', site_url() ), '/' );
-			$url           = trailingslashit( site_url() . str_repeat( '/..', $subdir_levels ) ) . ltrim( $url, '/' );
-		}
-
-		$root_url  = preg_replace( '/^https?:/', '', $root_url );
-		$url_rep   = preg_replace( '/^https?:/', '', $url );
-		$file      = str_replace( $root_url, $root_dir, $url_rep );
-		$real_path = self::realpath( $file );
-
-		if ( ! file_exists( $real_path ) ) {
-			return false;
-		}
-
-		return $real_path;
-	}
+        if ( ! is_string($url) || strpos($url, "\0") !== false ) { return false; }
+        $parts = parse_url($url);
+        if ( false === $parts || isset($parts['user']) || isset($parts['pass']) ) { return false; }
+        if ( isset($parts['scheme']) && ! in_array(strtolower($parts['scheme']), ['http','https'], true) ) { return false; }
+        $base = parse_url(content_url());
+        if ( isset($parts['host']) && ( strtolower($parts['host']) !== strtolower($base['host'] ?? '') || ($parts['port'] ?? null) !== ($base['port'] ?? null) ) ) { return false; }
+        $path = rawurldecode($parts['path'] ?? '');
+        if ( preg_match('#(?:^|/)\.\.(?:/|$)#', $path) || strpos($path, '\\') !== false ) { return false; }
+        $root = realpath(dirname(WP_CONTENT_DIR));
+        if ( ! $root ) { return false; }
+        $base_path = rtrim(dirname($base['path'] ?? '/wp-content'), '/.');
+        if ( $base_path && strpos($path, $base_path . '/') !== 0 ) { return false; }
+        if ( $base_path ) { $path = substr($path, strlen($base_path)); }
+        $file = realpath($root . '/' . ltrim($path, '/'));
+        if ( ! $file || strpos($file, $root . DIRECTORY_SEPARATOR) !== 0 || ! is_file($file) || ! is_readable($file) ) { return false; }
+        if ( ! in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), ['css','js','jpg','jpeg','png','gif','webp','avif','svg','woff','woff2','ttf','eot','otf'], true) ) { return false; }
+        return $file;
+    }
 
 	/**
 	 * Returns canonicalized absolute pathname.
@@ -1854,14 +2008,15 @@ class Cache {
 	public static function enable_dev_mode( $seconds = 3600 ) {
 		$dir = WP_CONTENT_DIR . '/cache/ezcache';
 		if ( ! is_dir( $dir ) ) {
-			@mkdir( $dir, 0755, true );
+			self::make_dir( $dir );
 		}
 		$expires = ( $seconds === 0 ) ? 0 : time() + $seconds;
-		file_put_contents( $dir . '/.dev-mode', (string) $expires );
+		return Utilities\AtomicFile::write($dir . '/.dev-mode', (string)$expires);
 	}
 
 	public static function disable_dev_mode() {
-		@unlink( WP_CONTENT_DIR . '/cache/ezcache/.dev-mode' );
+		$file=WP_CONTENT_DIR . '/cache/ezcache/.dev-mode';
+        return !is_file($file) || @unlink($file);
 	}
 
 	public static function get_dev_mode_status() {

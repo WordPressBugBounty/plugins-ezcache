@@ -35,6 +35,8 @@ class Admin {
 			'plugin_action_links',
 		] );
 		add_action( 'admin_notices', [ $this, 'maybe_show_advanced_cache_notice' ] );
+		add_action( 'admin_notices', [ $this, 'maybe_show_cron_notice' ] );
+		add_action( 'admin_notices', [ $this, 'maybe_show_upgrade_notice' ] );
 		// Trial banner removed — licensing system disabled.
 
 		add_action( 'admin_bar_menu', [ $this, 'add_admin_bar_button' ], 999 );
@@ -52,44 +54,21 @@ class Admin {
 	 *
 	 * @param int $attachment_id
 	 */
-	function delete_webp_image( $attachment_id ) {
-		global $wpdb;
-
-		$upload_dir = wp_upload_dir()['basedir'];
-
-		$meta = wp_get_attachment_metadata( $attachment_id );
-		if ( ! $meta || ! isset( $meta['file'] ) ) {
-			return;
-		}
-
-		if ( ! isset( $meta['sizes'] ) ) {
-			$meta['sizes'] = [];
-		}
-
-		$meta['sizes'][] = [ 'file' => $meta['file'] ];
-
-		$hashes = [];
-		foreach ( $meta['sizes'] as $size ) {
-			$image_path      = trailingslashit( $upload_dir ) . $meta['file'];
-			$ext             = pathinfo( $image_path, PATHINFO_EXTENSION );
-			$image_webp_path = preg_replace( '/^(.+)\.' . preg_quote( $ext, '/' ) . '$/u', '$1.webp', $image_path );
-
-			$hashes[] = sha1( $image_path );
-
-			if ( file_exists( $image_webp_path ) ) {
-				unlink( $image_webp_path );
-			}
-		}
-
-		$wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM `{$wpdb->prefix}ezcache_webp_images` WHERE `uid` IN (" . substr( str_repeat( "%d, ", count( $hashes ) ), 0, - 2 ) . ")",
-				$hashes
-			)
-		);
-
-		$wpdb->query( "OPTIMIZE TABLE `{$wpdb->prefix}ezcache_webp_images`" );
-	}
+    function delete_webp_image($attachment_id) {
+        global $wpdb;
+        $file=get_attached_file($attachment_id);
+        if (!$file) { return; }
+        $meta=wp_get_attachment_metadata($attachment_id);
+        $files=[$file];
+        foreach(array_slice($meta['sizes'] ?? [],0,100) as $size) {
+            if (!empty($size['file']) && basename($size['file'])===$size['file']) { $files[]=dirname($file).'/'.$size['file']; }
+        }
+        foreach($files as $path) {
+            $webp=Rest\WebpController::make_webp_name($path);
+            if (WebpApi::allowed_path($webp) && is_file($webp)) { @unlink($webp); }
+            $wpdb->delete($wpdb->prefix.'ezcache_webp_images',['uid'=>sha1($path)]);
+        }
+    }
 
 	/**
 	 * Register the post meta fields
@@ -195,7 +174,7 @@ class Admin {
 		}
 
 		if ( $settings->cache_clear_home_on_post_edit ) {
-			$this->plugin->ezcache->clear_cache_url( '/' );
+			$this->plugin->ezcache->clear_cache_url( home_url('/') );
 
 			$blog_page_url = $this->plugin->ezcache->get_relative_url( get_post_type_archive_link( 'post' ) );
 			$this->plugin->ezcache->clear_cache_url( $blog_page_url );
@@ -225,7 +204,7 @@ class Admin {
 	 * @param WP_Admin_Bar $wp_admin_bar
 	 */
 	function add_admin_bar_button( $wp_admin_bar ) {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' ) ) {
 			return;
 		}
 
@@ -266,7 +245,7 @@ class Admin {
 		add_menu_page(
 			__( 'ezCache' ),
 			__( 'ezCache' ),
-			'manage_options',
+			is_multisite() ? 'manage_network_options' : 'manage_options',
 			'ezcache',
 			[ $this, 'settings_page' ],
 			'data:image/svg+xml;base64,' . base64_encode( self::$svg )
@@ -512,6 +491,8 @@ class Admin {
 			'run_preload_now'        => __( 'Run Preload Now', 'ezcache' ),
 			'stop_preload'           => __( 'Stop Preload', 'ezcache' ),
 			'preload_completed'      => __( 'Completed', 'ezcache' ),
+            'preload_failed' => __('Finished with errors', 'ezcache'),
+            'failed' => __('Failed', 'ezcache'),
 			'preload_stalled'        => __( 'Stalled', 'ezcache' ),
 			'preload_stalled_desc'   => __( 'The run stopped making progress. Resume it to continue from where it stopped.', 'ezcache' ),
 			'preload_resume'         => __( 'Resume', 'ezcache' ),
@@ -556,7 +537,7 @@ class Admin {
 			'delete_trashed_comments' => __( 'Delete trashed comments', 'ezcache' ),
 			'delete_transients'      => __( 'Delete expired transients', 'ezcache' ),
 			'delete_orphan_meta'     => __( 'Delete orphan post meta', 'ezcache' ),
-			'optimize_tables'        => __( 'Run OPTIMIZE TABLE on all tables', 'ezcache' ),
+			'optimize_tables'        => __( 'Optimize one small MyISAM table per run', 'ezcache' ),
 			'cleanup_schedule'       => __( 'Automatic cleanup schedule', 'ezcache' ),
 			'never'                  => __( 'Never (manual only)', 'ezcache' ),
 			'run_cleanup_now'        => __( 'Run Cleanup Now', 'ezcache' ),
@@ -573,8 +554,8 @@ class Admin {
 			'delete'                 => __( 'Delete', 'ezcache' ),
 
 			'no_cache_known_users'                      => __( 'Don\'t cache pages for known users', 'ezcache' ),
-			'no_cache_known_users_description'          => __( 'This disables cache for logged in users.', 'ezcache' ),
-			'no_cache_known_users_admin_bar_notice'     => __( 'The admin bar will be hidden for all users to prevent it being saved into the cache.', 'ezcache' ),
+			'no_cache_known_users_description'          => __( 'Logged-in pages are always excluded from full-page caching.', 'ezcache' ),
+			'no_cache_known_users_admin_bar_notice'     => __( 'Pages with login, cart, session or comment-author cookies always bypass full-page caching.', 'ezcache' ),
 			'no_cache_comment_authors'                  => __( 'Don\'t cache pages for comment authors', 'ezcache' ),
 			'no_cache_comment_authors_description'      => __( 'Do not save cache for users who saved their name and email for the next time they comment.', 'ezcache' ),
 			'cache_expiry'                              => __( 'Cache Expiry', 'ezcache' ),
@@ -600,6 +581,8 @@ class Admin {
 			'ignored_query_params_list_label'           => __( 'Parameters to ignore (one per line; add a trailing * to match by prefix, e.g. utm_*)', 'ezcache' ),
 			'no_cache_filtered_pages'                   => __( 'Don\'t cache filtered product and archive pages', 'ezcache' ),
 			'no_cache_filtered_pages_description'       => __( 'Pages with product or post filters applied (WooCommerce layered navigation, Filter Everything, WOOF, YITH and similar) are served live. Every filter combination is a different URL and crawlers walk through all of them, which can fill the disk with millions of cache files.', 'ezcache' ),
+			'strict_response_privacy'                   => __( 'Strict privacy: never cache a page that sets a cookie or opens a PHP session', 'ezcache' ),
+			'strict_response_privacy_description'       => __( 'Leave this off unless your site shows per-visitor content that comes from a PHP session or from its own cookies. Pages for logged-in users, visitors with a cart, password-protected posts and pages that send a no-cache instruction are never cached either way. With this on, any page during which a plugin opens a PHP session or sets any cookie (for example a "recently viewed products" cookie) is not cached, which on many shops turns most of the cache off.', 'ezcache' ),
 			'max_cache_url_depth'                       => __( 'Maximum URL depth to cache', 'ezcache' ),
 			'max_cache_url_depth_description'           => __( 'Pages whose path has more segments (parts between slashes) than this are not cached. 0 disables the limit.', 'ezcache' ),
 			'max_cache_url_length'                      => __( 'Maximum URL length to cache', 'ezcache' ),
@@ -681,7 +664,7 @@ class Admin {
 			'not_recommended_https2'                    => __( 'Your server supports HTTP/2 which benefits from having this option kept disabled', 'ezcache' ),
 			'enable_webp_support'                       => __( 'Optimize Images With WebP', 'ezcache' ),
 			/* xgettext:no-php-format */
-			'enable_webp_support_description'           => __( 'WebP is a modern image format that provides superior lossless and lossy compression for images on the web. WebP lossless images are 26% smaller in size compared to PNGs, and 25-34% smaller than comparable JPEG images.', 'ezcache' ),
+			'enable_webp_support_description'           => __( 'Convert eligible JPEG/PNG uploads to WebP with the local image editor. Savings depend on the source image. External conversion requires explicit opt-in.', 'ezcache' ),
 			'requries_premium_license'                  => __( 'Requires a premium license', 'ezcache' ),
 			'rejected_user_agent_placeholder'           => _x( 'Googlebot', 'user agent example', 'ezcache' ),
 			'rejected_uri_placeholder'                  => _x( '/products/*', 'rejected uri example', 'ezcache' ),
@@ -754,6 +737,61 @@ class Admin {
 		return;
 	}
 
+	/**
+	 * Warn on ezCache screens when an ezCache background event has been due for
+	 * over an hour: background work (WebP conversion, preload, cache cleanup) is
+	 * not running, usually because WP-Cron is disabled without a server cron.
+	 */
+	/**
+	 * An update of the plugin that did not finish (see Updater::upgrade()). It is
+	 * retried by itself; this tells the administrator why it is not through yet.
+	 */
+	function maybe_show_upgrade_notice() {
+		if ( empty( $_GET['page'] ) || 0 !== strpos( (string) $_GET['page'], 'ezcache' ) || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$error = get_option( 'ezcache_upgrade_error' );
+		if ( ! is_array( $error ) || empty( $error['message'] ) ) {
+			return;
+		}
+		echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'ezCache', 'ezcache' ) . ':</strong> ';
+		echo esc_html( sprintf(
+			/* translators: 1: plugin version, 2: error message */
+			__( 'The update to version %1$s could not be completed and is retried automatically. Reason: %2$s', 'ezcache' ),
+			(string) ( $error['version'] ?? '' ),
+			(string) $error['message']
+		) );
+		echo '</p></div>';
+	}
+
+	function maybe_show_cron_notice() {
+		if ( empty( $_GET['page'] ) || 0 !== strpos( (string) $_GET['page'], 'ezcache' ) || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$stalled = \Upress\EzCache\Utilities\Cron::stalled_event();
+		if ( ! $stalled ) {
+			return;
+		}
+		$waiting  = human_time_diff( $stalled['due'], time() );
+		$last_run = $stalled['last_run'] ? human_time_diff( $stalled['last_run'], time() ) : '';
+		echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'ezCache', 'ezcache' ) . ':</strong> ';
+		echo esc_html( sprintf(
+			/* translators: %s: how long the event has been waiting, e.g. "2 weeks" */
+			__( 'Background tasks (WebP conversion, preload, cache cleanup) are not running: a scheduled task has been waiting for %s.', 'ezcache' ),
+			$waiting
+		) );
+		echo ' ';
+		if ( ! \Upress\EzCache\Utilities\Cron::wp_spawns_cron() ) {
+			echo esc_html__( 'WP-Cron is disabled on this site (DISABLE_WP_CRON). Add a server cron that requests wp-cron.php every few minutes, or remove the constant from wp-config.php.', 'ezcache' );
+		} else {
+			echo esc_html__( 'WP-Cron appears to be stuck. Check the server cron and the doing_cron lock.', 'ezcache' );
+		}
+		if ( $last_run ) {
+			echo ' ' . esc_html( sprintf( /* translators: %s: time ago */ __( 'Last WP-Cron run seen: %s ago.', 'ezcache' ), $last_run ) );
+		}
+		echo '</p></div>';
+	}
+
 	function maybe_show_advanced_cache_notice() {
 		$webp_queue = get_site_option( 'ezcache_convert_images_to_webp_reprocess_queue' );
 		if ( ! $webp_queue ) {
@@ -773,6 +811,7 @@ class Admin {
 	}
 
 	function admin_clear_cache() {
+        if (!current_user_can(is_multisite() ? 'manage_network_options' : 'manage_options')) { wp_die(esc_html__('Forbidden','ezcache'),'', ['response'=>403]); }
 		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'wpb-clear-cache' ) ) {
 			wp_nonce_ays( 'wpb-clear-cache' );
 		}

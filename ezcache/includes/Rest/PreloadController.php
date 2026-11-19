@@ -11,7 +11,7 @@ class PreloadController {
 	 * Get the current state of the preload queue.
 	 */
 	public function show() {
-		return wp_send_json_success( Preload::instance()->get_status() );
+		return Response::success( Preload::instance()->get_status() );
 	}
 
 	/**
@@ -22,7 +22,7 @@ class PreloadController {
 	public function start( $request ) {
 		$status = Preload::instance()->start();
 
-		return wp_send_json_success( $status );
+		return is_wp_error($status) ? $status : Response::success($status);
 	}
 
 	/**
@@ -31,6 +31,6 @@ class PreloadController {
 	public function destroy() {
 		$status = Preload::instance()->stop();
 
-		return wp_send_json_success( $status );
+		return is_wp_error($status) ? $status : Response::success($status);
 	}
 }

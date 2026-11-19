@@ -16,6 +16,27 @@ class WebpConverter extends BaseFileOptimizer {
 	/** @var wpdb $wpdb */
 	protected $wpdb;
 
+	/**
+	 * Same as Rest\WebpController::make_webp_name(); the two must stay identical.
+	 * Kept here as well so that rendering a page never depends on another class
+	 * whose older copy PHP may still hold right after an update.
+	 */
+	public static function webp_name( $path, $is_url = false ) {
+		if ( ! is_string( $path ) || '' === $path ) {
+			return '';
+		}
+		$tail = '';
+		$cut  = $is_url ? strcspn( $path, '?#' ) : strlen( $path );
+		if ( $cut < strlen( $path ) ) {
+			$tail = substr( $path, $cut );
+			$path = substr( $path, 0, $cut );
+		}
+		$ext  = pathinfo( $path, PATHINFO_EXTENSION );
+		$base = '' === $ext ? $path : substr( $path, 0, - strlen( $ext ) - 1 );
+
+		return $base . '.' . substr( md5( $ext ), - 6 ) . '.webp' . $tail;
+	}
+
 	function __construct( $cache_dir, $cache_file, $webp_processor, $wpdb ) {
 		$this->cache_dir      = $cache_dir;
 		$this->cache_file     = $cache_file;
@@ -31,6 +52,10 @@ class WebpConverter extends BaseFileOptimizer {
 	 * @return string
 	 */
 	public function optimize( $html ) {
+		// "Clear WebP images" is deleting the files in background batches: do not point pages at them, do not queue new ones.
+		if ( function_exists( 'get_option' ) && get_option( 'ezcache_webp_delete_pending', false ) ) {
+			return $html;
+		}
 		/*
 		 * we need to make sure to handle multiple formats
 		 * <img src="elva-fairy-800w.jpg" alt="Elva dressed as a fairy">
@@ -91,7 +116,8 @@ class WebpConverter extends BaseFileOptimizer {
 			}
 
 			$image_path = $this->get_file_path( $image_url );
-			if ( ! $image_path || ! file_exists( $image_path ) ) {
+			// method_exists: right after an update PHP may still hold an older WebpApi for up to a minute.
+			if ( ! $image_path || ! method_exists( '\Upress\EzCache\WebpApi', 'allowed_path' ) || ! \Upress\EzCache\WebpApi::allowed_path($image_path) || ! file_exists( $image_path ) ) {
 				Logger::log("{$image_url} doesn't exist");
 				continue;
 			}
@@ -100,9 +126,10 @@ class WebpConverter extends BaseFileOptimizer {
 			$mime = mime_content_type( $image_path );
 
 
-			$ext_quoted      = preg_quote( $ext, '/' );
-			$image_webp_url  = preg_replace( '/^(.+\.)' . $ext_quoted . '(\?.+)?$/u', '$1' . substr( md5( $ext ), - 6 ) . '.webp$2', $image_url );
-			$image_webp_path = preg_replace( '/^(.+\.)' . $ext_quoted . '$/u', '$1' . substr( md5( $ext ), - 6 ) . '.webp', $image_path );
+			// The replacement used to be '$1' . <6 hex digits>: when the digits began with a
+			// number (.PNG, .JPEG, .jpe, .bmp) PHP read "$13…" as group 13 and the name broke.
+			$image_webp_url  = self::webp_name( $image_url, true );
+			$image_webp_path = self::webp_name( $image_path );
 
 			// and skip non-images or images already in webp format
 			if ( 'webp' == $ext || ! preg_match( '/image\/.+/i', $mime ) || preg_match( '/image\/(svg.*|ico|gif|webp)/i', $mime ) ) {
@@ -118,7 +145,7 @@ class WebpConverter extends BaseFileOptimizer {
 				)
 			);
 
-			if ( $image && 'completed' == $image->status ) {
+			if ( $image && 'completed' == $image->status && is_file($image->webp_path) ) {
 				$html = preg_replace( '/\b' . preg_quote( $image_url, '/' ) . '\b/u', $image->webp_url, $html );
 				Logger::log("{$image_url} already processed");
 				continue;
@@ -137,15 +164,7 @@ class WebpConverter extends BaseFileOptimizer {
 				continue;
 			}
 
-			if ( $image && 'failed' == $image->status ) {
-				// if the image has failed we need to requeue it
-				$this->wpdb->query(
-					$this->wpdb->prepare(
-						"DELETE FROM `{$this->wpdb->prefix}ezcache_webp_images` WHERE `id` = %d",
-						[ $image->id ]
-					)
-				);
-			}
+			if ($image && 'failed' === $image->status) { continue; }
 
 			// otherwise send the image to process
 			// this should parse the images and set a callback to update the cache file

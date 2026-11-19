@@ -21,7 +21,7 @@ class RedisController {
      */
     public function status() {
         $status = RedisObjectCache::get_status();
-        return wp_send_json_success( $status );
+        return Response::success( $status );
     }
 
     /**
@@ -30,14 +30,14 @@ class RedisController {
      */
     public function flush() {
         if ( ! PremiumFeatures::is_premium() ) {
-            return wp_send_json_error( [ 'message' => 'Premium required' ], 403 );
+            return Response::error( [ 'message' => 'Premium required' ], 403 );
         }
 
         $result = RedisObjectCache::flush();
         if ( $result ) {
-            return wp_send_json_success( [ 'message' => 'Redis cache flushed' ] );
+            return Response::success( [ 'message' => 'Redis cache flushed' ] );
         }
-        return wp_send_json_error( [ 'message' => 'Failed to flush Redis — is it running?' ] );
+        return Response::error( [ 'message' => 'Failed to flush Redis — is it running?' ] );
     }
 
     /**
@@ -46,30 +46,21 @@ class RedisController {
      */
     public function toggle( WP_REST_Request $request ) {
         if ( ! PremiumFeatures::is_premium() ) {
-            return wp_send_json_error( [ 'message' => 'Premium required' ], 403 );
+            return Response::error( [ 'message' => 'Premium required' ], 403 );
         }
 
         $params  = (array) $request->get_json_params();
-        $enable  = ! empty( $params['enable'] );
-        $fullpage = ! empty( $params['enable_fullpage'] );
+        $enable  = filter_var($params['enable'] ?? false,FILTER_VALIDATE_BOOLEAN);
+        $fullpage = filter_var($params['enable_fullpage'] ?? false,FILTER_VALIDATE_BOOLEAN);
 
-        Settings::set_settings( [
+        $saved = Settings::set_settings( [
             'enable_redis_object_cache' => $enable,
             'enable_redis_fullpage'     => $fullpage,
         ] );
 
-        if ( $enable ) {
-            $deployed = RedisObjectCache::maybe_deploy_dropin();
-            if ( ! $deployed && ! RedisObjectCache::is_our_dropin() ) {
-                return wp_send_json_error( [
-                    'message' => 'A foreign object-cache.php already exists. Remove it first.',
-                ] );
-            }
-        } else {
-            RedisObjectCache::remove_dropin();
-        }
+        if ( is_wp_error($saved) ) { return $saved; }
 
-        return wp_send_json_success( [
+        return Response::success( [
             'enabled'  => $enable,
             'status'   => RedisObjectCache::get_status(),
         ] );

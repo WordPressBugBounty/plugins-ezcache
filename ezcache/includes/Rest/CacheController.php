@@ -11,7 +11,7 @@ class CacheController {
 		try {
 			$stats = Cache::instance()->get_cache_stats();
 		} catch( Exception $ex) {
-			return wp_send_json_error( [ 'error' => $ex->getMessage() ] );
+			return Response::error( [ 'error' => $ex->getMessage() ] );
 		}
 
 		// Restructure flat stats into nested format expected by Vue frontend
@@ -38,14 +38,15 @@ class CacheController {
 			],
 			'webp' => [
 				'count'         => $stats['webp_images'] ?? 0,
-				'size'          => $stats['webp_size'] ?? 0,
-				'original_size' => $stats['webp_original_size'] ?? 0,
+				'size'          => $stats['webp_images_size'] ?? 0,
+				'original_size' => $stats['webp_images_original_size'] ?? 0,
 			],
 		];
 
-		return wp_send_json_success( [
+		return Response::success( [
 			'stats'   => $structured_stats,
-			'notices' => [],
+			'notices' => !empty($stats['partial']) ? ['Statistics are partial; the two-second scan limit was reached.'] : [],
+            'partial' => !empty($stats['partial']),
 		] );
 	}
 
@@ -57,7 +58,7 @@ class CacheController {
 
 		Cache::instance()->clear_cache();
 
-		return wp_send_json_success( [ 'input' => $input ] );
+		return Response::success( [ 'input' => $input ] );
 	}
 
 }
