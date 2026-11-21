@@ -288,6 +288,21 @@ class Cache {
         return $headers;
     }
 
+    /**
+     * Vary fields that mark a response as built for one visitor (lower case).
+     * Filter: ezcache_private_vary_fields.
+     *
+     * @return string[]
+     */
+    private static function private_vary_fields() {
+        $fields = [ '*', 'cookie', 'authorization' ];
+        if ( function_exists( 'apply_filters' ) ) {
+            $filtered = apply_filters( 'ezcache_private_vary_fields', $fields );
+            if ( is_array( $filtered ) ) { $fields = array_map( 'strtolower', array_map( 'strval', $filtered ) ); }
+        }
+        return $fields;
+    }
+
     public function response_is_public() {
         if ( defined('DONOTCACHEPAGE') && DONOTCACHEPAGE ) { return false; }
         // nocache_headers() was called for this response. Remembered here because a
@@ -323,8 +338,18 @@ class Cache {
                 && 'no-store,no-cache,must-revalidate' === strtolower(preg_replace('/\s+/', '', substr($header,14))) ) { continue; }
             if (0 === stripos($header, 'Cache-Control:') && preg_match('/(?:^|,)\s*(?:(?:private|no-store|no-cache)(?=[=,\s]|$)|(?:s-maxage|max-age)\s*=\s*"?0"?(?=[,\s]|$))/i', trim(substr($header,14)))) { return false; }
             if (0 === stripos($header, 'Vary:')) {
+                // Vary lists the request headers a proxy keeps separate copies for. Only a
+                // few of them say that the page was built for one visitor: Cookie,
+                // Authorization and "*". The others (Accept, Content-Type, Origin,
+                // User-Agent, Accept-Language) describe the format of the request, and up to
+                // 2.6.9 such pages were cached. 2.7.0 refused every field other than
+                // Accept-Encoding. Jetpack sends "Vary: accept, content-type" on every
+                // front-end page, so on those sites no page was stored at all and every
+                // view was rendered by PHP. Strict mode keeps the 2.7.0 behaviour.
                 foreach (explode(',',strtolower(substr($header,5))) as $field) {
-                    if (trim($field)!=='accept-encoding') { return false; }
+                    $field = trim($field);
+                    if ( '' === $field || 'accept-encoding' === $field ) { continue; }
+                    if ( $strict || in_array( $field, self::private_vary_fields(), true ) ) { return false; }
                 }
             }
         }

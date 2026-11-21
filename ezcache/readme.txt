@@ -3,7 +3,7 @@ Contributors: upress
 Requires at least: 5.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.7.1
+Stable tag: 2.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: cache, performance, speed, redis, optimization
@@ -49,6 +49,9 @@ Preload failures retry at most three times and remain visible in the status. Web
 Statistics scans stop after two seconds and label partial counts. Expiry maintenance is bounded; TTL is also enforced on every cache read. A lifetime of zero means no time-based expiry. Plugin upgrades use a fresh cache namespace and purge obsolete disk caches in background batches.
 
 == Changelog ==
+
+= 2.7.2 =
+* Fixed: Pages are cached again on sites where a plugin adds a Vary header to every page. Since 2.7.0 a page was stored only when its Vary header named nothing but Accept-Encoding. Jetpack sends "Vary: accept, content-type" on front-end pages, so on those sites no page was stored at all and every view was rendered by PHP. Now only Vary: Cookie, Vary: Authorization and Vary: * keep a page out of the cache (filter ezcache_private_vary_fields); "Strict privacy" on the Settings page keeps the stricter rule. Nothing has to be done after updating: the cache fills again as pages are visited.
 
 = 2.7.1 =
 * Fixed: Updating no longer breaks admin and AJAX requests for up to a minute on servers where PHP keeps compiled files in memory (opcache.revalidate_freq). Right after the files are replaced, PHP can run old and new plugin files together; the upgrade routine then called code that did not exist yet ("Call to undefined method"). The plugin now clears its own files from the opcode cache, waits until every file is older than the re-check window before migrating, and treats an error during the migration as "try again later" instead of failing the request.
